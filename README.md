@@ -1,2 +1,2 @@
 # WS-Deployer-KVM
-Workshop Deployer for Libvirt my workshops in libvirtd
+Workshop Deployer for my workshops in libvirtd
