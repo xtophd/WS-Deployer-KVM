@@ -30,15 +30,7 @@
 
 - import_playbook: libvirt-create-bastion.yml
 
-- import_playbook: libvirt-repo.yml
+- import_playbook: libvirt-create-nodes.yml
 
-- import_playbook: libvirt-deploy-secret.yml
-
-- import_playbook: bastion-setup.yml
-
-- import_playbook: libvirt-create-bootstrap.yml
-
-- import_playbook: libvirt-create-masters.yml
-
-- import_playbook: libvirt-create-workers.yml
+- import_playbook: libvirt-postconfig.yml
 

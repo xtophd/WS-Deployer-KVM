@@ -30,12 +30,6 @@
       var: hw_profile[hostvars[item]['h_hwPROF']]
     loop: "{{ groups['myNodes'] }}"
 
-  - name: "LIBVIRT-CREATE-NODE: Create ssh directory"
-    file:
-      path: "{{ kvm_cfg.qcow_dir }}"
-      mode: "0775"
-      state: directory
-
   - name: "LIBVIRT-CREATE-NODE: deploy kickstart configuration"
     vars:
       - p_diskDevice: "{{ hw_profile[hostvars[item]['h_hwPROF']].disk.dev }}"
@@ -74,22 +68,20 @@
                      --graphics vnc \
                      --vcpus {{ p_cpu }} \
                      --boot hd,network,menu=yes \
-                     --noreboot
+                     --noautoconsole
     loop: "{{ groups['myNodes'] }}"
 
-  - name: "LIBVIRT-CREATE-NODE: Create ssh directory"
-    file:
-      path: /root/.ssh
-      mode: "0700"
-      state: directory
-
-  - name: "LIBVIRT-CREATE-NODE: test ssh key"
-    stat: path="/root/.ssh/id_rsa.pub"
-    register: test_ssh_key
-
-  - name: "LIBVIRT-CREATE-NODE: create ssh key"
-    command: "ssh-keygen -t rsa -b 2048 -N '' -f /root/.ssh/id_rsa"
-    when: test_ssh_key.stat.exists == false
+  - name: "LIBVIRT-CREATE-BASTION: give nodes a chance to install and reboot"
+    vars:
+      p_vmname:   "{{ g_clusterName }}-{{ hostvars[item]['inventory_hostname_short'] }}"
+    shell:
+      cmd: |
+        virsh domstate "{{ p_vmname }}" | grep -q "shut off"
+    register: result
+    until:  result.rc == 0
+    retries: 600
+    delay: 5
+    loop: "{{ groups['myNodes'] }}"
 
   - name: "LIBVIRT-CREATE-NODE: inject ssh key to node vm"
     vars:
@@ -109,16 +101,6 @@
         virsh start "{{ p_vmname }}"
     loop: "{{ groups['myNodes'] }}"
 
-  - name: "LIBVIRT-CREATE-NODE: clean out local ssh keys for node"
-    shell:
-      cmd: |
-        ssh-keygen -R "{{ hostvars[item]['inventory_hostname'] }}"
-        ssh-keygen -R "{{ hostvars[item]['inventory_hostname_short'] }}"
-        ssh-keygen -R "{{ hostvars[item]['inventory_hostname_short'] }}.{{ g_clusterName }}.{{ g_publicDomain }}"
-        ssh-keygen -R "{{ hostvars[item]['h_pubIP'] }}"
-    loop: "{{ groups['myNodes'] }}"
-    ignore_errors: yes
-
   - name: "LIBVIRT-CREATE-NODE: give node a chance to boot"
     wait_for:
       host: "{{ hostvars[item]['h_pubIP'] }}"
@@ -129,6 +111,16 @@
       state: started
       timeout: 300
     loop: "{{ groups['myNodes'] }}"
+
+  - name: "LIBVIRT-CREATE-NODE: clean out local ssh keys for node"
+    shell:
+      cmd: |
+        ssh-keygen -R "{{ hostvars[item]['inventory_hostname'] }}"
+        ssh-keygen -R "{{ hostvars[item]['inventory_hostname_short'] }}"
+        ssh-keygen -R "{{ hostvars[item]['inventory_hostname_short'] }}.{{ g_clusterName }}.{{ g_publicDomain }}"
+        ssh-keygen -R "{{ hostvars[item]['h_pubIP'] }}"
+    loop: "{{ groups['myNodes'] }}"
+    ignore_errors: yes
 
   - name: "LIBVIRT-CREATE-NODE: add ssh keys for node"
     vars:

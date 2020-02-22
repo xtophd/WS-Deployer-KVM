@@ -9,24 +9,61 @@
 - hosts: myBastion
   tasks:
 
+  - name: "LIBVIRT-POST-CONFIG: ({{ inventory_hostname }}) create ssh directory"
+    file:
+      path: /root/.ssh
+      mode: "0700"
+      state: directory
+
+  - name: "LIBVIRT-POST-CONFIG: ({{ inventory_hostname }}) deploy ssh key"
+    copy:
+      dest:  "/root/.ssh/id_rsa"
+      mode:  "600"
+      owner: "root"
+      group: "root"
+      src:   "/root/.ssh/bastion_rsa"
+    
+  - name: "LIBVIRT-POST-CONFIG: ({{ inventory_hostname }}) deploy ssh pub key"
+    copy:
+      dest:  "/root/.ssh/id_rsa.pub"
+      mode:  "600"
+      owner: "root"
+      group: "root"
+      src:   "/root/.ssh/bastion_rsa.pub"
+
+
+
+- hosts: myBastion:myNodes
+  tasks:
+
+
+
   - include_vars: "{{ item }}"
     with_first_found: "{{ vars_libvirt }}"
 
-  - include_vars: "{{ item }}"
-    with_first_found: "{{ vars_rs_profiles }}"
 
-  - include_vars: "{{ item }}"
-    with_first_found: "{{ vars_hw_profiles }}"
 
-  - debug:
-      var: kvm_cfg.repo[item]
-    with_items: "{{ kvm_cfg.repo }}"
+  - name: "LIBVIRT-POST-CONFIG: deploy node authorized_hosts to nodes"
+    authorized_key:
+      key:  "{{ lookup('file','/root/.ssh/bastion_rsa.pub') }}"
+      user: root
+      state: present
 
-  - debug:
-      var: kvm_cfg.repo[item].name
-    with_items: "{{ kvm_cfg.repo }}"
 
-  - name: Add repository
+
+  - name: "LIBVIRT-POST-CONFIG: add ssh keys to known_hosts"
+    vars:
+      p_fqdn:   "{{ hostvars[item]['inventory_hostname_short'] }}.{{ g_pubFQDN }}"
+      p_name:   "{{ hostvars[item]['inventory_hostname_short'] }}"
+    shell:
+      cmd: |
+        ssh-keyscan "{{ p_fqdn }}" >> /root/.ssh/known_hosts
+        ssh-keyscan "{{ p_name }}" >> /root/.ssh/known_hosts
+    loop: "{{ [ groups['myBastion'], groups['myNodes'] ] | flatten(1) }}"
+
+
+
+  - name: "LIBVIRT-POST-CONFIG: deploy yum configs"
     yum_repository:
       name:        "{{ kvm_cfg.repo[item].name }}"
       description: "{{ kvm_cfg.repo[item].name }}"
@@ -37,24 +74,8 @@
 
 
 
+  - name: "LIBVIRT-POST-CONFIG: set hostname"
+    hostname:
+      name: "{{ inventory_hostname }}.{{ g_pubFQDN }}"
 
 
-- hosts: myVirthost
-  tasks:
-
-  - include_vars: "{{ item }}"
-    with_first_found: "{{ vars_libvirt }}"
-
-  - include_vars: "{{ item }}"
-    with_first_found: "{{ vars_rs_profiles }}"
-
-  - include_vars: "{{ item }}"
-    with_first_found: "{{ vars_hw_profiles }}"
-
-  - name: "LIBVIRT-REPOSYNC: loopback mount ISO"
-    mount:
-      src:    "{{ kvm_cfg.iso.dir }}/{{ kvm_cfg.iso.name }}"
-      path:   "{{ kvm_cfg.iso.mount }}"
-      opts:   "loop,ro"
-      state:  "mounted"
-      fstype: "iso9660"

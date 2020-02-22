@@ -14,9 +14,6 @@
   - include_vars: "{{ item }}"
     with_first_found: "{{ vars_libvirt }}"
 
-  - include_vars: "{{ item }}"
-    with_first_found: "{{ vars_reposync }}"
-
   - debug:
       var: kvm_cfg
 
@@ -62,7 +59,7 @@
       permanent: yes
       state: enabled
     with_items:
-      - "{{ kvm_cfg.cockpit_port }}"
+      - "{{ kvm_cfg.cockpit_port }}/tcp"
 
 # A reminder that if we use a port not natively included by selinux, we need to add it
 #   
