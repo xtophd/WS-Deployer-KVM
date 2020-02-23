@@ -21,12 +21,6 @@
 
   tasks:
  
-  - debug:
-      var: vars_libvirt
-  
-  - include_vars: "{{ item }}"
-    with_first_found: "{{ vars_libvirt }}"
-
   - name: "LIBVIRT-BASICS: Create ssh directory"
     file:
       path: /root/.ssh
@@ -93,20 +87,6 @@
   - name: "LIBVIRT-BASICS: fail if RHEL ISO absent"
     fail: msg="COPY YOUR RHEL ISO HERE {{ kvm_cfg.iso.dir }}/{{ kvm_cfg.iso.name }}"
     when: test_rhel_iso.stat.exists == false
-
-#  - name: "LIBVIRT-BASICS: use rhsm to disable all repos"
-#    shell:
-#      cmd:|
-#        subscription-manager repos --disable=*
-#
-#  - name: "LIBVIRT-BASICS: use rhsm to enable repos"
-#    shell: 
-#      cmd:|
-#        subscription-manager repos --enable='{{ item }}'
-#    with_items: 
-#      - "rhel-7-server-rpms"
-#      - "rhel-7-server-optional-rpms"
-#      - "rhel-7-server-extras-rpms"
 
   - name: "Subscription Manager enable specified repos only"
     rhsm_repository: 

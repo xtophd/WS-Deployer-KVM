@@ -11,18 +11,6 @@
 
   tasks:
 
-  - include_vars: "{{ item }}"
-    with_first_found: "{{ vars_libvirt }}"
-
-  - include_vars: "{{ item }}"
-    with_first_found: "{{ vars_rs_profiles }}"
-
-  - include_vars: "{{ item }}"
-    with_first_found: "{{ vars_hw_profiles }}"
-
-  - debug:
-      var: kvm_cfg
-
   - debug:
       var: rs_profile[hostvars[item]['h_rsPROF']]
     loop: "{{ groups['myMasters'] }}"

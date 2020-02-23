@@ -21,11 +21,6 @@
 
   tasks:
 
-  - include_vars: "{{ item }}"
-    with_first_found: "{{ vars_libvirt }}"
-
-  - debug: msg="Libvirt Network Test Result Code = {{ kvm_cfg.network.name }}"
-
   - name: "LIBVIRT-SETUP: test existence of libvirt network ({{ kvm_cfg.network.name }})"
     shell: 
       cmd: |

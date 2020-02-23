@@ -11,9 +11,6 @@
 - hosts: myVirthost
   tasks:
 
-  - include_vars: "{{ item }}"
-    with_first_found: "{{ vars_libvirt }}"
-
   ## Put entry in /etc/hosts so virthost and clients (via dnsmasq) can resolv
 
   - name: "LIBVIRT-DNS: update /etc/hosts"

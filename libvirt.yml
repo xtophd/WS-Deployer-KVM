@@ -21,16 +21,35 @@
   tasks:
 
 - import_playbook: libvirt-basics.yml
+  tags:
+  - basics
 
 - import_playbook: libvirt-cockpit.yml
+  tags:
+  - cockpit
 
 - import_playbook: libvirt-network.yml
+  tags:
+  - network
 
 - import_playbook: libvirt-dns.yml
+  tags:
+  - dns
 
 - import_playbook: libvirt-create-bastion.yml
+  tags:
+  - bastion
 
 - import_playbook: libvirt-create-nodes.yml
+  tags:
+  - nodes
 
 - import_playbook: libvirt-postconfig.yml
+  tags:
+  - postconfig
 
+#- import_playbook: ../playbooks/libvirt-postinstall.yml
+
+- import_playbook: "{{ kvm_postinstall }}"
+  tags:
+  - postinstall

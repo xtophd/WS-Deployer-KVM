@@ -31,25 +31,14 @@
       group: "root"
       src:   "/root/.ssh/bastion_rsa.pub"
 
-
-
 - hosts: myBastion:myNodes
   tasks:
-
-
-
-  - include_vars: "{{ item }}"
-    with_first_found: "{{ vars_libvirt }}"
-
-
 
   - name: "LIBVIRT-POST-CONFIG: deploy node authorized_hosts to nodes"
     authorized_key:
       key:  "{{ lookup('file','/root/.ssh/bastion_rsa.pub') }}"
       user: root
       state: present
-
-
 
   - name: "LIBVIRT-POST-CONFIG: add ssh keys to known_hosts"
     vars:
@@ -61,8 +50,6 @@
         ssh-keyscan "{{ p_name }}" >> /root/.ssh/known_hosts
     loop: "{{ [ groups['myBastion'], groups['myNodes'] ] | flatten(1) }}"
 
-
-
   - name: "LIBVIRT-POST-CONFIG: deploy yum configs"
     yum_repository:
       name:        "{{ kvm_cfg.repo[item].name }}"
@@ -72,10 +59,6 @@
       gpgcheck:    "no"
     with_items: "{{ kvm_cfg.repo }}"
 
-
-
   - name: "LIBVIRT-POST-CONFIG: set hostname"
     hostname:
       name: "{{ inventory_hostname }}.{{ g_pubFQDN }}"
-
-
