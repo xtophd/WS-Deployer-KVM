@@ -88,15 +88,11 @@
     fail: msg="COPY YOUR RHEL ISO HERE {{ kvm_cfg.iso.dir }}/{{ kvm_cfg.iso.name }}"
     when: test_rhel_iso.stat.exists == false
 
-  - name: "Subscription Manager enable specified repos only"
+  - name: "Subscription Manager enable required repos only"
     rhsm_repository: 
-      name: "{{ item }}"
+      name: "rhel-7-server-rpms,rhel-7-server-optional-rpms,rhel-7-server-extras-rpms"
       purge: True
       state: enabled
-    with_items: 
-      - "rhel-7-server-rpms"
-      - "rhel-7-server-optional-rpms"
-      - "rhel-7-server-extras-rpms"
 
   - name: "LIBVIRT-BASICS: install general packages"
     yum: name=git,tree,wget,yum-utils,firewalld,httpd,net-tools,policycoreutils-python state=installed
