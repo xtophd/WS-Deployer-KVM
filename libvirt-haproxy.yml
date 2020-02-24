@@ -1,0 +1,106 @@
+## Authors: 
+##   Christoph Doerbeck
+##
+## Summary:
+##   Installs haproxy
+##   Constructs configuration file fragments in /etc/haproxy/config-fragments/*
+##   Assembles fragments to /etc/haproxy/haproxy.cfg
+##   Enables system services
+##   Enables firewall services and ports
+##
+
+---
+- hosts: myVirthost
+  tasks:
+
+  - name: "VIRTHOST-HAPROXY: package installation"
+    yum: name=haproxy state=installed
+
+  - name: "VIRTHOST-HAPROXY: add persistant SELINUX boolean"
+    shell: setsebool -P haproxy_connect_any on
+
+  - name: "VIRTHOST-HAPROXY: clean cfg fragment directory"
+    shell:
+      cmd: |
+        if [[ -d "/etc/haproxy/cfg-fragments" ]] ; then rm -rf /etc/haproxy/cfg-fragments ; fi
+
+  - name: "VIRTHOST-HAPROXY create fresh cfg fragment directory"
+    file:
+      path: /etc/haproxy/cfg-fragments
+      mode: "0755"
+      state: directory
+
+  - name: "VIRTHOST-HAPROXY: deploy default config"
+    template:
+      src: "haproxy-defaults.j2"
+      dest: "/etc/haproxy/cfg-fragments/10-defaults.cfg"
+      owner: root
+
+  - name: "VIRTHOST-HAPROXY: deploy stats config"
+    vars:
+      - p_port:     "8404"
+      - p_order:    "15"
+      - p_name:     "{{ g_clusterName }}"
+    template:
+      src: "haproxy-stats.j2"
+      dest: "/etc/haproxy/cfg-fragments/{{ p_order }}-stats.cfg"
+      owner: root
+
+  - name: "VIRTHOST-HAPROXY: deploy https base"
+    vars:
+      - p_type:     "https"
+      - p_port:     "443"
+      - p_order:    "50"
+      - p_service:  "cockpit"
+    template:
+      src: "haproxy-frontend-backend.j2"
+      dest: "/etc/haproxy/cfg-fragments/{{ p_order }}-{{ p_type }}.cfg"
+      owner: root
+
+  - name: "VIRTHOST-HAPROXY: deploy https servers"
+    vars:
+      - p_type:     "https"
+      - p_port:     "9090"
+      - p_order:    "55"
+      - p_item:     "{{ item }}"
+      - p_name:     "{{ hostvars[item]['inventory_hostname_short']}}"
+      - p_addr:     "{{ hostvars[item]['h_pubIP'] }}"
+      - p_service:  "cockpit"
+    template:
+      src: "haproxy-host-entry.j2"
+      dest: "/etc/haproxy/cfg-fragments/{{ p_order }}-{{ p_type }}-{{ p_name }}.cfg"
+      owner: root
+      group: root
+      mode: 644
+    loop: "{{ groups['myBastion'] }}"
+
+  - name: "VIRTHOST-HAPROXY: assemble config fragments"
+    assemble:
+      src: "/etc/haproxy/cfg-fragments"
+      dest: "/etc/haproxy/haproxy.cfg"
+      owner: root
+      group: root
+      mode: 644
+
+  - name: "VIRTHOST-HAPROXY: restart service"
+    service: name=haproxy state=restarted enabled=yes
+
+  - name: "VIRTHOST-HAPROXY: add firewalld service rules"
+    firewalld:
+      service: "{{ item }}"
+      immediate: yes
+      permanent: yes
+      state: enabled
+    with_items:
+      - "http"
+      - "https"
+
+  - name: "VIRTHOST-HAPROXY: add firewalld port rules"
+    firewalld:
+      port: "{{ item }}"
+      immediate: yes
+      permanent: yes
+      state: enabled
+    with_items:
+      - "8404/tcp"
+      - "8404/udp"

@@ -1,0 +1,14 @@
+
+## ---------------------------------------- 
+## {{ p_type }} servers
+
+frontend {{ p_service }}-{{ p_type }}-server
+    bind *:{{ p_port }}
+    mode tcp
+    option tcplog
+    default_backend {{ p_service }}-{{ p_type }}-server
+
+backend {{ p_service }}-{{ p_type }}-server
+    balance source
+    mode tcp
+   
