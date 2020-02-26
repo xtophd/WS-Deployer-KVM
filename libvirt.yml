@@ -36,6 +36,10 @@
   tags:
   - dns
 
+- import_playbook: libvirt-haproxy.yml
+  tags:
+  - haproxy
+
 - import_playbook: libvirt-create-bastion.yml
   tags:
   - bastion

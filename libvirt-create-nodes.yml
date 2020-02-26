@@ -29,37 +29,17 @@
       mode: 0644
     loop: "{{ groups['myNodes'] }}"
 
-  - name: "LIBVIRT-CREATE-NODE: virt-install node"
-    vars:
-      p_name:     "{{ hostvars[item]['inventory_hostname_short'] }}"
-      p_vmname:   "{{ g_clusterName }}-{{ hostvars[item]['inventory_hostname_short'] }}"
-      p_mac:      "{{ hostvars[item]['h_pubMAC'] }}"
-      p_ip:       "{{ hostvars[item]['h_pubIP'] }}"
-      p_nm:       "{{ hostvars[item]['g_pubNM'] }}"
-      p_gw:       "{{ hostvars[item]['g_pubGW'] }}"
-      p_bus:      "{{ hw_profile[hostvars[item]['h_hwPROF']].disk.bus }}"
-      p_dns:      "{{ hostvars[item]['g_pubDNS'] }}"
-      p_sparse:   "{{ hw_profile[hostvars[item]['h_hwPROF']].disk.sparse }}"
-      p_netdev:   "{{ hw_profile[hostvars[item]['h_hwPROF']].network.model }}"
-      p_disksize: "{{ rs_profile[hostvars[item]['h_rsPROF']].disksize }}"
-      p_memsize:  "{{ rs_profile[hostvars[item]['h_rsPROF']].memsize }}"
-      p_cpu:      "{{ rs_profile[hostvars[item]['h_rsPROF']].vcpus }}"
-    shell:
-      cmd: |
-        virt-install --name="{{ p_vmname }}" \
-                     --ram="{{ p_memsize }}" \
-                     --disk "{{ kvm_cfg.qcow_dir }}/{{ p_vmname }}.qcow2,bus={{ p_bus }},sparse={{ p_sparse }},size={{ p_disksize }}" \
-                     --check disk_size=off \
-                     --location={{ kvm_cfg.iso.dir }}/{{ kvm_cfg.iso.name }} \
-                     --extra-args="ks={{ kvm_cfg.ks_url }} ip={{ p_ip }} netmask={{ p_nm }} dns={{ p_dns }} gateway={{ p_gw }}" \
-                     --network "network={{ kvm_cfg.network.name }},mac={{ p_mac }},model={{ p_netdev }}" \
-                     --graphics vnc \
-                     --vcpus {{ p_cpu }} \
-                     --boot hd,network,menu=yes \
-                     --noautoconsole
+  - name: "LIBVIRT-CREATE-NODE: build virt-install scripts"
+    include_tasks: tasks-build-virtinstall-scripts.yml
     loop: "{{ groups['myNodes'] }}"
 
-  - name: "LIBVIRT-CREATE-BASTION: give nodes a chance to install and reboot"
+  - name: "LIBVIRT-CREATE-NODE: execute virt-install scripts"
+    shell:
+      cmd: |
+        bash "/var/tmp/{{ item }}-virtinstall.sh"
+    loop: "{{ groups['myNodes'] }}"
+
+  - name: "LIBVIRT-CREATE-NODE: give nodes a chance to install and shutdown"
     vars:
       p_vmname:   "{{ g_clusterName }}-{{ hostvars[item]['inventory_hostname_short'] }}"
     shell:

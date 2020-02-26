@@ -1,0 +1,117 @@
+
+  - set_fact:
+      outer_item: "{{ item }}"
+
+  - set_fact:
+      fragment_dir: /var/tmp/{{ outer_item }}-fragments
+
+########################################
+##
+## Clean the fragments directory
+##
+
+  - name: "TASKS-VIRTINSTALL: clean fragments directory"
+    file: path="{{ fragment_dir }}" state=absent
+
+  - name: "TASKS-VIRTINSTALL: clean previous virt-install shell scripts"
+    file: path="{{ fragment_dir }}/{{ outer_item }}-virtinstall.sh" state=absent
+
+  - name: "TASKS-VIRTINSTALL: create fragment directory"
+    file: path="{{ fragment_dir }}" mode="0755" state=directory
+
+
+########################################
+##
+## Create base virt-install fragment
+##
+
+  - name: "TASKS-VIRTINSTALL: create virt-install command base"
+    vars:
+      p_name:     "{{ hostvars[item]['inventory_hostname_short'] }}"
+      p_vmname:   "{{ g_clusterName }}-{{ hostvars[item]['inventory_hostname_short'] }}"
+      p_mac:      "{{ hostvars[item]['h_pubMAC'] }}"
+      p_ip:       "{{ hostvars[item]['h_pubIP'] }}"
+      p_nm:       "{{ hostvars[item]['g_pubNM'] }}"
+      p_gw:       "{{ hostvars[item]['g_pubGW'] }}"
+      p_bus:      "{{ hw_profile[hostvars[item]['h_hwPROF']].disk.bus }}"
+      p_dns:      "{{ hostvars[item]['g_pubDNS'] }}"
+      p_sparse:   "{{ hw_profile[hostvars[item]['h_hwPROF']].disk.sparse }}"
+      p_netdev:   "{{ hw_profile[hostvars[item]['h_hwPROF']].network.model }}"
+      p_disksize: "{{ rs_profile[hostvars[item]['h_rsPROF']].storage.root.size }}"
+      p_memsize:  "{{ rs_profile[hostvars[item]['h_rsPROF']].memsize }}"
+      p_cpu:      "{{ rs_profile[hostvars[item]['h_rsPROF']].vcpus }}"
+    template:
+      src:  virtinstall-iso-base.j2
+      dest: "{{ fragment_dir }}/10-base"
+
+########################################
+##
+## Add extra disks
+##
+  - debug:
+      msg: "{{ p_diskname }}"
+    loop: "{{ rs_profile[hostvars[outer_item]['h_rsPROF']].storage.extra | flatten(1) }}"
+    loop_control:
+      loop_var: p_diskname
+    when: rs_profile[hostvars[outer_item]['h_rsPROF']].storage.extra is defined
+
+  - name: "TASKS-VIRTINSTALL: add extra disks to virt-install command"
+    vars:
+      p_name:     "{{ hostvars[item]['inventory_hostname_short'] }}"
+      p_vmname:   "{{ g_clusterName }}-{{ hostvars[item]['inventory_hostname_short'] }}"
+      p_mac:      "{{ hostvars[item]['h_pubMAC'] }}"
+      p_ip:       "{{ hostvars[item]['h_pubIP'] }}"
+      p_nm:       "{{ hostvars[item]['g_pubNM'] }}"
+      p_gw:       "{{ hostvars[item]['g_pubGW'] }}"
+      p_bus:      "{{ hw_profile[hostvars[item]['h_hwPROF']].disk.bus }}"
+      p_dns:      "{{ hostvars[item]['g_pubDNS'] }}"
+      p_sparse:   "{{ hw_profile[hostvars[item]['h_hwPROF']].disk.sparse }}"
+      p_netdev:   "{{ hw_profile[hostvars[item]['h_hwPROF']].network.model }}"
+      p_disksize: "{{ rs_profile[hostvars[outer_item]['h_rsPROF']]['storage']['extra'][p_diskname].size }}"
+      p_memsize:  "{{ rs_profile[hostvars[item]['h_rsPROF']].memsize }}"
+      p_cpu:      "{{ rs_profile[hostvars[item]['h_rsPROF']].vcpus }}"
+    template:
+      src: virtinstall-iso-extra.j2
+      dest: "{{ fragment_dir }}/20-extra-{{ p_diskname }}"
+    loop: "{{ rs_profile[hostvars[outer_item]['h_rsPROF']].storage.extra | flatten(1) }}"
+    loop_control:
+      loop_var: p_diskname
+    when: rs_profile[hostvars[outer_item]['h_rsPROF']].storage.extra is defined
+
+########################################
+##
+## Add finish
+##
+
+  - name: "TASKS-VIRTINSTALL: complete virt-install command"
+    vars:
+      p_name:     "{{ hostvars[item]['inventory_hostname_short'] }}"
+      p_vmname:   "{{ g_clusterName }}-{{ hostvars[item]['inventory_hostname_short'] }}"
+      p_mac:      "{{ hostvars[item]['h_pubMAC'] }}"
+      p_ip:       "{{ hostvars[item]['h_pubIP'] }}"
+      p_nm:       "{{ hostvars[item]['g_pubNM'] }}"
+      p_gw:       "{{ hostvars[item]['g_pubGW'] }}"
+      p_bus:      "{{ hw_profile[hostvars[item]['h_hwPROF']].disk.bus }}"
+      p_dns:      "{{ hostvars[item]['g_pubDNS'] }}"
+      p_sparse:   "{{ hw_profile[hostvars[item]['h_hwPROF']].disk.sparse }}"
+      p_netdev:   "{{ hw_profile[hostvars[item]['h_hwPROF']].network.model }}"
+      p_disksize: "{{ rs_profile[hostvars[item]['h_rsPROF']].storage.root.size }}"
+      p_memsize:  "{{ rs_profile[hostvars[item]['h_rsPROF']].memsize }}"
+      p_cpu:      "{{ rs_profile[hostvars[item]['h_rsPROF']].vcpus }}"
+    template:
+      src: virtinstall-iso-finish.j2
+      dest: "{{ fragment_dir }}/30-finish"
+
+########################################
+##
+## Assemble the fragments
+##
+
+  - name: "INCLUDE-VIRTINSTALL: assemble config fragments"
+    assemble:
+      src: "/var/tmp/{{ outer_item }}-fragments"
+      dest: "/var/tmp/{{ outer_item }}-virtinstall.sh"
+      owner: root
+      group: root
+      mode: 644
+

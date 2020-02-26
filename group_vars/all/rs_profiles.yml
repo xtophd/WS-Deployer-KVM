@@ -4,26 +4,59 @@
 
 rs_profile:
 
+  rhel8:
+    description: "RHEL 8 Workshop Node"
+    vcpus: 2
+    memsize: 4000
+    storage:
+      root:
+        size: 30
+
+  rhel8-xtra:
+    description: "RHEL 8 Workshop Node Extra Disks"
+    vcpus: 2
+    memsize: 4000
+    storage:
+      root:
+        size: 30
+      extra:
+        disk1:
+          size: 10
+        disk2: 
+          size: 10
+        disk3: 
+          size: 10 
+        disk4: 
+          size: 10 
+
   sml:
     description: "Sufficient for minimal sized workers"
     vcpus: 2
     memsize: 8000
-    disksize: 120 
+    storage:
+      root:
+        size: 120 
 
   med:
     description: "Sufficient for minimal sized bootstrap and masters"
     vcpus:    4
     memsize:  16000
-    disksize: 120
+    storage:
+      root:
+        size: 120 
 
   lrg:
     description: "Beefy worker"
     vcpus:    8
     memsize:  24000
-    disksize: 200
+    storage:
+      root:
+        size: 200 
 
   bastion:
     description: "Resources for the bastion utility host"
     vcpus:    4
     memsize:  8000
-    disksize: 30
+    storage:
+      root:
+        size: 30 
