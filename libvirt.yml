@@ -24,6 +24,11 @@
   tags:
   - basics
 
+- import_playbook: libvirt-nested-virt.yml
+  when: kvm_cfg.enable_nested_virt == true
+  tags:
+  - nested
+
 - import_playbook: libvirt-cockpit.yml
   tags:
   - cockpit
