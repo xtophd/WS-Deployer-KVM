@@ -13,10 +13,11 @@
 ## Test for hardware compatability
 ##
 
-  - name: "LIBVIRT-NESTED-VIRT: hardware check"
+  - name: "LIBVIRT-NESTED-VIRT: does hardware support virt"
     shell:
       cmd: |
         grep -q -E 'svm|vmx' /proc/cpuinfo
+    ignore_errors: yes
 
 ########################################
 ##
@@ -30,6 +31,7 @@
     shell:
       cmd: |
         grep -q 'Y' /sys/module/kvm_intel/parameters/nested
+    ignore_errors: yes
     register: test_nestedvirt
 
 ########################################
@@ -55,7 +57,7 @@
       name: libvirtd
       state: stopped
 
-  - name: "LIBVIRT-NESTED-VIRT: check if nested virt enabled"
+  - name: "LIBVIRT-NESTED-VIRT: reload kvm kernel module"
     when: test_nestedvirt.rc != 0
     shell:
       cmd: |
