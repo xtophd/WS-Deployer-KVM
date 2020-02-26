@@ -1,0 +1,38 @@
+
+##
+## Coming soon, enable nested virt
+##
+
+## Reference
+##
+##   https://www.linuxtechi.com/enable-nested-virtualization-kvm-centos-7-rhel-7/
+
+
+cat /sys/module/kvm_intel/parameters/nested
+  OR
+cat /sys/module/kvm_amd/parameters/nested
+
+########################################
+
+vi /etc/modprobe.d/kvm-nested.conf
+options kvm-intel nested=1
+options kvm-intel enable_shadow_vmcs=1
+options kvm-intel enable_apicv=1
+options kvm-intel ept=1
+
+OR
+
+Don't have a sample of AMD file
+
+########################################
+
+modprobe -r kvm_intel
+modprobe -a kvm_intel
+
+OR
+
+
+########################################
+
+
+
