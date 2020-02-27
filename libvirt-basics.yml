@@ -95,7 +95,7 @@
       state: enabled
 
   - name: "LIBVIRT-BASICS: install general packages"
-    yum: name=git,tree,wget,yum-utils,firewalld,httpd,net-tools,policycoreutils-python state=installed
+    yum: name=git,tree,wget,yum-utils,firewalld,httpd,net-tools,traceroute,nmap,policycoreutils-python state=installed
 
   - name: "LIBVIRT-BASICS: install virtualization packages"
     yum: name=qemu-kvm,libvirt,virt-install,libvirt-client,libguestfs-tools state=installed
