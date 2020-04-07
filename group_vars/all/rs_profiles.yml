@@ -21,13 +21,13 @@ rs_profile:
         size: 30
       extra:
         disk1:
-          size: 10
+          size: 5
         disk2: 
-          size: 10
+          size: 5
         disk3: 
-          size: 10 
+          size: 5 
         disk4: 
-          size: 10 
+          size: 5 
 
   sml:
     description: "Sufficient for minimal sized workers"
