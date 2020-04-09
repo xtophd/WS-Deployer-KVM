@@ -48,17 +48,19 @@
 - import_playbook: libvirt-create-bastion.yml
   tags:
   - bastion
+  - deploy
 
 - import_playbook: libvirt-create-nodes.yml
   tags:
   - nodes
+  - deploy
 
 - import_playbook: libvirt-postconfig.yml
   tags:
   - postconfig
-
-#- import_playbook: ../playbooks/libvirt-postinstall.yml
+  - deploy
 
 - import_playbook: "{{ kvm_postinstall }}"
   tags:
   - postinstall
+  - deploy
