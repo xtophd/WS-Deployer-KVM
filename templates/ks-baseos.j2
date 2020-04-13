@@ -34,8 +34,6 @@ part /boot --fstype=ext2 --size=512 --ondisk=vda --asprimary
 part pv.01 --size=16000 --grow --ondisk={{ p_diskDevice }} --asprimary
 volgroup vg_rhel pv.01
 logvol /     --fstype=ext4  --vgname=vg_rhel --name=root   --size=6000 --grow
-logvol /var  --fstype=ext4  --vgname=vg_rhel --name=var    --size=4000
-logvol /home --fstype=ext4  --vgname=vg_rhel --name=home   --size=2000
 logvol /tmp  --fstype=ext4  --vgname=vg_rhel --name=tmp    --size=2000
 logvol swap  --fstype=swap  --vgname=vg_rhel --name=swap01 --size=2000
 
