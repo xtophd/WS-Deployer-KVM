@@ -7,6 +7,7 @@ virt-install --name="{{ p_vmname }}" \
     --extra-args="ks={{ kvm_cfg.ks_url }} ip={{ p_ip }} netmask={{ p_nm }} dns={{ p_dns }} gateway={{ p_gw }}" \
     --network "network={{ kvm_cfg.network.name }},mac={{ p_mac }},model={{ p_netdev }}" \
     --graphics vnc \
-    --vcpus {{ p_cpu }} \
+    --vcpus {{ p_vcpu }} \
+    --cpu {{ p_cpu }} \
     --boot hd,network,menu=yes \
     --disk "{{ kvm_cfg.qcow_dir }}/{{ p_vmname }}.qcow2,bus={{ p_bus }},sparse={{ p_sparse }},size={{ p_disksize }}" \

@@ -15,6 +15,17 @@ hw_profile:
     network:
       model:  "virtio"
 
+  kvm_nest_vda:
+    description: "KVM based virtual machine with nested-virt and disk.bus = virtio"
+    cpu:
+      type:   "host-passthrough"
+    disk:
+      bus:    "virtio"
+      sparse: "true"
+      dev:    "vda"
+    network:
+      model:  "virtio"
+
   kvm_sda:
     description: "KVM based virtual machine using disk.bus = virtio-scsi"
     disk:

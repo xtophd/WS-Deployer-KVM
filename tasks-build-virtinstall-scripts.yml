@@ -39,7 +39,8 @@
       p_netdev:   "{{ hw_profile[hostvars[item]['h_hwPROF']].network.model }}"
       p_disksize: "{{ rs_profile[hostvars[item]['h_rsPROF']].storage.root.size }}"
       p_memsize:  "{{ rs_profile[hostvars[item]['h_rsPROF']].memsize }}"
-      p_cpu:      "{{ rs_profile[hostvars[item]['h_rsPROF']].vcpus }}"
+      p_vcpu:     "{{ rs_profile[hostvars[item]['h_rsPROF']].vcpus }}"
+      p_cpu:      "{{ hw_profile[hostvars[item]['h_hwPROF']].cpu.type | default ('host-model') }}"
     template:
       src:  virtinstall-iso-base.j2
       dest: "{{ fragment_dir }}/10-base"
