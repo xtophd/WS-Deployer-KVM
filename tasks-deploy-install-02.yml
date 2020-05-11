@@ -3,7 +3,8 @@
 ##
 ## Summary:
 ##
-##
+##   These tasks are separate from tasks-deploy-install-01.yml to
+##   allow parallel deployments even when wait_for_shutdown is enabled.
 ##
 
     - set_fact:
@@ -17,7 +18,7 @@
         tdp_iso_path:  "{{ kvm_cfg.iso.dir }}"
         tdp_iso_name:  "{{ ks_profile[hostvars[tdp_node_name]['h_ksPROF']].iso | default ('') }}"
 
-    - name: "TASKS-VIRTINSTALL ({{ tdp_node_name }}): wait for shutdown"
+    - name: "TASKS-DEPLOY-INSTALL-02 ({{ tdp_node_name }}): wait for shutdown"
       vars:
         p_vmname:   "{{ g_clusterName }}-{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
       shell:
@@ -29,7 +30,7 @@
       delay: 5
       when: tdp_wait_for_shutdown == True
 
-    - name: "TASKS-VIRTINSTALL ({{ tdp_node_name }}): inject ssh key to bastion vm"
+    - name: "TASKS-DEPLOY-INSTALL-02 ({{ tdp_node_name }}): inject ssh key to bastion vm"
       vars:
         p_vmname:   "{{ g_clusterName }}-{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
       shell:
@@ -41,7 +42,7 @@
         - tdp_wait_for_shutdown == True
         - tdp_inject_sshkey == True
 
-    - name: "TASKS-VIRTINSTALL ({{ tdp_node_name }}): start node back up"
+    - name: "TASKS-DEPLOY-INSTALL-02 ({{ tdp_node_name }}): start node back up"
       vars:
         p_vmname:   "{{ g_clusterName }}-{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
       shell:
@@ -49,7 +50,7 @@
           virsh start "{{ p_vmname }}"
       when: tdp_wait_for_shutdown == True
 
-    - name: "TASKS-VIRTINSTALL ({{ tdp_node_name }}): wait for boot (check port 22)"
+    - name: "TASKS-DEPLOY-INSTALL-02 ({{ tdp_node_name }}): wait for boot (check port 22)"
       wait_for:
         host: "{{ hostvars[tdp_node_name]['h_pubIP'] }}"
         connect_timeout: 5
@@ -60,7 +61,7 @@
         timeout: 300
       when: tdp_wait_for_shutdown == True
 
-    - name: "TASKS-VIRTINSTALL ({{ tdp_node_name }}): clean up old ssh keys for node"
+    - name: "TASKS-DEPLOY-INSTALL-02 ({{ tdp_node_name }}): clean up old ssh keys for node"
       shell:
         cmd: |
           ssh-keygen -R "{{ hostvars[tdp_node_name]['inventory_hostname'] }}"
@@ -69,7 +70,7 @@
           ssh-keygen -R "{{ hostvars[tdp_node_name]['h_pubIP'] }}"
       ignore_errors: yes
 
-    - name: "TASKS-VIRTINSTALL ({{ tdp_node_name }}): add new ssh keys for node"
+    - name: "TASKS-DEPLOY-INSTALL-02 ({{ tdp_node_name }}): add new ssh keys for node"
       vars:
         p_fqdn:   "{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}.{{ g_pubFQDN }}"
       shell:

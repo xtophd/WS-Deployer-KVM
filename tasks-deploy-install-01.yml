@@ -17,11 +17,11 @@
         tdp_iso_path:  "{{ kvm_cfg.iso.dir }}"
         tdp_iso_name:  "{{ ks_profile[hostvars[tdp_node_name]['h_ksPROF']].iso | default ('') }}"
 
-    - name: "TASKS-DEPLOY-VIRTINSTALL ({{ tdp_node_name }}): create {{ tdp_ks_dir }}"
+    - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): create {{ tdp_ks_dir }}"
       file: path="{{ tdp_ks_dir }}" mode="0755" state=directory
       when: tdp_iso_name != "" 
 
-    - name: "TASKS-DEPLOY-VIRTINSTALL ({{ tdp_node_name }}): deploy kickstart"
+    - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): deploy kickstart"
       vars:
         - p_diskDevice: "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].disk.dev }}"
       template:
@@ -32,13 +32,13 @@
         mode: 0644
       when: tdp_iso_name != "" 
 
-    - name: "TASKS-DEPLOY-VIRTINSTALL ({{ tdp_node_name }}): clean {{ fragment_dir }}"
+    - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): clean {{ fragment_dir }}"
       shell: "rm -rf {{ fragment_dir }}"
         
-    - name: "TASKS-DEPLOY-VIRTINSTALL ({{ tdp_node_name }}): create {{ fragment_dir }}"
+    - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): create {{ fragment_dir }}"
       file: path="{{ fragment_dir }}" mode="0755" state=directory
 
-    - name: "TASKS-VIRTINSTALL ({{ tdp_node_name }}): create virt-install command base"
+    - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): create virt-install command base"
       vars:
         p_name:     "{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
         p_vmname:   "{{ g_clusterName }}-{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
@@ -60,7 +60,7 @@
         src:  virtinstall-base.j2
         dest: "{{ fragment_dir }}/10-base"
 
-    - name: "TASKS-VIRTINSTALL ({{ tdp_node_name }}): adding ISO location"
+    - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): adding ISO location"
       vars:
         p_name:     "{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
         p_vmname:   "{{ g_clusterName }}-{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
@@ -90,7 +90,7 @@
 #        loop_var: p_diskname
 #      when: rs_profile[hostvars[tdp_node_name]['h_rsPROF']].storage.extra is defined
 
-    - name: "TASKS-VIRTINSTALL ({{ tdp_node_name }}): add extra disks to virt-install command"
+    - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): add extra disks to virt-install command"
       vars:
         p_name:     "{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
         p_vmname:   "{{ g_clusterName }}-{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
@@ -114,7 +114,7 @@
         loop_var: p_diskname
       when: rs_profile[hostvars[tdp_node_name]['h_rsPROF']].storage.extra is defined
 
-    - name: "TASKS-VIRTINSTALL ({{ tdp_node_name }}): complete virt-install command"
+    - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): complete virt-install command"
       vars:
         p_name:     "{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
         p_vmname:   "{{ g_clusterName }}-{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
@@ -135,7 +135,7 @@
         src: virtinstall-finish.j2
         dest: "{{ fragment_dir }}/50-finish"
 
-    - name: "TASKS-VIRTINSTALL ({{ tdp_node_name }}): assemble config fragments"
+    - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): assemble config fragments"
       assemble:
         src: "{{ fragment_dir }}"
         dest: "{{ scripts_dir }}/{{ tdp_node_name }}-virtinstall.sh"
@@ -143,7 +143,7 @@
         group: root
         mode: 644
 
-    - name: "TASKS-VIRTINSTALL ({{ tdp_node_name }}): execute virt-install script"
+    - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): execute virt-install script"
       shell:
         cmd: |
           bash "{{ scripts_dir }}/{{ tdp_node_name }}-virtinstall.sh"
