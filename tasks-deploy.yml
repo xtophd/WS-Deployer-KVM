@@ -16,28 +16,28 @@
       tdp_inject_sshkey:     "{{ kvm_deploy_plan.passes[item]['inject_sshkey'] }}" 
 
 
-  - name: "TASKS-DEPLOY-PASS: ({{ tdp_pass_name }},{{ tdp_hostgroup }}]) pre-install '{{ tdp_pre_install }}'"
+  - name: "TASKS-DEPLOY-PASS: ({{ tdp_pass_name }},{{ tdp_hostgroup }}) pre-install '{{ tdp_pre_install }}'"
     shell: "cd .. ; {{ tdp_pre_install }}"
     when: tdp_pre_install != ""
 
 
-  - name: "TASKS-DEPLOY-PASS: ({{ tdp_pass_name }},{{ tdp_hostgroup }}]) deploying nodes"
+  - name: "TASKS-DEPLOY-PASS: ({{ tdp_pass_name }},{{ tdp_hostgroup }}) install-01 deploying nodes"
     include_tasks: tasks-deploy-install-01.yml
     loop: "{{ groups[tdp_hostgroup] }}"
     loop_control:
       loop_var: tdp_node_name
 
-  - name: "TASKS-DEPLOY-PASS: ({{ tdp_pass_name }},{{ tdp_hostgroup }}]) deploy post plays"
+  - name: "TASKS-DEPLOY-PASS: ({{ tdp_pass_name }},{{ tdp_hostgroup }}) install-02 deploying post plays"
     include_tasks: tasks-deploy-install-02.yml
     loop: "{{ groups[tdp_hostgroup] }}"
     loop_control:
       loop_var: tdp_node_name
 
-  - name: "TASKS-DEPLOY-PASS: ({{ tdp_pass_name }},{{ tdp_hostgroup }}]) post-config" 
+  - name: "TASKS-DEPLOY-PASS: ({{ tdp_pass_name }},{{ tdp_hostgroup }}) post-config" 
     shell: "ansible-playbook -l {{ tdp_hostgroup }} -i ../config/master-config.yml -e @../config/libvirt-config.yml libvirt-deploy-postconfig.yml"
     when: tdp_post_config == True
 
-  - name: "TASKS-DEPLOY-PASS: ({{ tdp_pass_name }},{{ tdp_hostgroup }}]) post-install '{{ tdp_post_install }}'"
+  - name: "TASKS-DEPLOY-PASS: ({{ tdp_pass_name }},{{ tdp_hostgroup }}) post-install '{{ tdp_post_install }}'"
     shell: "cd .. ; {{ tdp_post_install }}"
     when: tdp_post_install != ""
 
