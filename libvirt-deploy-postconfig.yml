@@ -1,0 +1,21 @@
+
+##
+## SUMMARY:
+##
+##   Perform configuration of node at completion of build/kickstart
+##   This is called by 'tasks-deploy-pass.yml' via a SHELL with specified hostgroup
+##
+
+---
+- hosts: all
+  tasks:
+
+  - name: Add repository
+    yum_repository:
+      name:        "{{ kvm_cfg.repo[item].name }}"
+      description: "{{ kvm_cfg.repo[item].name }}"
+      baseurl:     "{{ kvm_cfg.repo[item].url }}"
+      enabled:     "yes"
+      gpgcheck:    "no"
+    with_items: "{{ kvm_cfg.repo }}"
+

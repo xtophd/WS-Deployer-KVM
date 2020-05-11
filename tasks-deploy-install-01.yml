@@ -1,0 +1,151 @@
+## Authors: 
+##   Christoph Doerbeck
+##
+## Summary:
+##
+##
+##
+
+    - set_fact:
+        scripts_dir:   "/var/tmp/{{ g_clusterName }}"
+        fragment_dir:  "/var/tmp/{{ g_clusterName }}/{{ tdp_node_name }}-fragments"
+  
+        tdp_ks_dir:    "/var/www/html/ks"
+        tdp_ks_url:    "{{ kvm_cfg.ks_url }}"
+        tdp_ks_cfg:    "{{ g_clusterName }}-{{ tdp_node_name }}.cfg"
+
+        tdp_iso_path:  "{{ kvm_cfg.iso.dir }}"
+        tdp_iso_name:  "{{ ks_profile[hostvars[tdp_node_name]['h_ksPROF']].iso | default ('') }}"
+
+    - name: "TASKS-DEPLOY-VIRTINSTALL ({{ tdp_node_name }}): create {{ tdp_ks_dir }}"
+      file: path="{{ tdp_ks_dir }}" mode="0755" state=directory
+      when: tdp_iso_name != "" 
+
+    - name: "TASKS-DEPLOY-VIRTINSTALL ({{ tdp_node_name }}): deploy kickstart"
+      vars:
+        - p_diskDevice: "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].disk.dev }}"
+      template:
+        src:  "{{ ks_profile[hostvars[tdp_node_name]['h_ksPROF']].template }}"
+        dest: "{{ tdp_ks_dir }}/{{ tdp_ks_cfg }}"
+        owner: root
+        group: apache
+        mode: 0644
+      when: tdp_iso_name != "" 
+
+    - name: "TASKS-DEPLOY-VIRTINSTALL ({{ tdp_node_name }}): clean {{ fragment_dir }}"
+      shell: "rm -rf {{ fragment_dir }}"
+        
+    - name: "TASKS-DEPLOY-VIRTINSTALL ({{ tdp_node_name }}): create {{ fragment_dir }}"
+      file: path="{{ fragment_dir }}" mode="0755" state=directory
+
+    - name: "TASKS-VIRTINSTALL ({{ tdp_node_name }}): create virt-install command base"
+      vars:
+        p_name:     "{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
+        p_vmname:   "{{ g_clusterName }}-{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
+        p_location: "{{ tdp_iso_path }}/{{ tdp_iso_name }}"
+        p_ksurl:    "{{ tdp_ks_url }}/{{ tdp_ks_cfg }}"
+        p_mac:      "{{ hostvars[tdp_node_name]['h_pubMAC'] }}"
+        p_ip:       "{{ hostvars[tdp_node_name]['h_pubIP'] }}"
+        p_nm:       "{{ hostvars[tdp_node_name]['g_pubNM'] }}"
+        p_gw:       "{{ hostvars[tdp_node_name]['g_pubGW'] }}"
+        p_bus:      "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].disk.bus }}"
+        p_dns:      "{{ hostvars[tdp_node_name]['g_pubDNS'] }}"
+        p_sparse:   "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].disk.sparse }}"
+        p_netdev:   "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].network.model }}"
+        p_disksize: "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']].storage.root.size }}"
+        p_memsize:  "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']].memsize }}"
+        p_vcpu:     "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']].vcpus }}"
+        p_cpu:      "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].cpu.type | default ('host-model') }}"
+      template:
+        src:  virtinstall-base.j2
+        dest: "{{ fragment_dir }}/10-base"
+
+    - name: "TASKS-VIRTINSTALL ({{ tdp_node_name }}): adding ISO location"
+      vars:
+        p_name:     "{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
+        p_vmname:   "{{ g_clusterName }}-{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
+        p_location: "{{ tdp_iso_path }}/{{ tdp_iso_name }}"
+        p_ksurl:    "{{ tdp_ks_url }}/{{ tdp_ks_cfg }}"
+        p_mac:      "{{ hostvars[tdp_node_name]['h_pubMAC'] }}"
+        p_ip:       "{{ hostvars[tdp_node_name]['h_pubIP'] }}"
+        p_nm:       "{{ hostvars[tdp_node_name]['g_pubNM'] }}"
+        p_gw:       "{{ hostvars[tdp_node_name]['g_pubGW'] }}"
+        p_bus:      "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].disk.bus }}"
+        p_dns:      "{{ hostvars[tdp_node_name]['g_pubDNS'] }}"
+        p_sparse:   "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].disk.sparse }}"
+        p_netdev:   "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].network.model }}"
+        p_disksize: "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']].storage.root.size }}"
+        p_memsize:  "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']].memsize }}"
+        p_vcpu:     "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']].vcpus }}"
+        p_cpu:      "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].cpu.type | default ('host-model') }}"
+      template:
+        src: virtinstall-location.j2
+        dest: "{{ fragment_dir }}/20-location"
+      when: tdp_iso_name != "" 
+
+#    - debug:
+#        msg: "{{ p_diskname }}"
+#      loop: "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']].storage.extra | flatten(1) }}"
+#      loop_control:
+#        loop_var: p_diskname
+#      when: rs_profile[hostvars[tdp_node_name]['h_rsPROF']].storage.extra is defined
+
+    - name: "TASKS-VIRTINSTALL ({{ tdp_node_name }}): add extra disks to virt-install command"
+      vars:
+        p_name:     "{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
+        p_vmname:   "{{ g_clusterName }}-{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
+        p_location: "{{ tdp_iso_path }}/{{ tdp_iso_name }}"
+        p_mac:      "{{ hostvars[tdp_node_name]['h_pubMAC'] }}"
+        p_ip:       "{{ hostvars[tdp_node_name]['h_pubIP'] }}"
+        p_nm:       "{{ hostvars[tdp_node_name]['g_pubNM'] }}"
+        p_gw:       "{{ hostvars[tdp_node_name]['g_pubGW'] }}"
+        p_bus:      "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].disk.bus }}"
+        p_dns:      "{{ hostvars[tdp_node_name]['g_pubDNS'] }}"
+        p_sparse:   "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].disk.sparse }}"
+        p_netdev:   "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].network.model }}"
+        p_disksize: "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']]['storage']['extra'][p_diskname].size }}"
+        p_memsize:  "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']].memsize }}"
+        p_cpu:      "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']].vcpus }}"
+      template:
+        src: virtinstall-extra.j2
+        dest: "{{ fragment_dir }}/30-extra-{{ p_diskname }}"
+      loop: "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']].storage.extra | flatten(1) }}"
+      loop_control:
+        loop_var: p_diskname
+      when: rs_profile[hostvars[tdp_node_name]['h_rsPROF']].storage.extra is defined
+
+    - name: "TASKS-VIRTINSTALL ({{ tdp_node_name }}): complete virt-install command"
+      vars:
+        p_name:     "{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
+        p_vmname:   "{{ g_clusterName }}-{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
+        p_location: "{{ tdp_iso_path }}/{{ tdp_iso_name }}"
+        p_ksurl:    "{{ tdp_ks_url }}/{{ tdp_ks_cfg }}"
+        p_mac:      "{{ hostvars[tdp_node_name]['h_pubMAC'] }}"
+        p_ip:       "{{ hostvars[tdp_node_name]['h_pubIP'] }}"
+        p_nm:       "{{ hostvars[tdp_node_name]['g_pubNM'] }}"
+        p_gw:       "{{ hostvars[tdp_node_name]['g_pubGW'] }}"
+        p_bus:      "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].disk.bus }}"
+        p_dns:      "{{ hostvars[tdp_node_name]['g_pubDNS'] }}"
+        p_sparse:   "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].disk.sparse }}"
+        p_netdev:   "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].network.model }}"
+        p_disksize: "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']].storage.root.size }}"
+        p_memsize:  "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']].memsize }}"
+        p_cpu:      "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']].vcpus }}"
+      template:
+        src: virtinstall-finish.j2
+        dest: "{{ fragment_dir }}/50-finish"
+
+    - name: "TASKS-VIRTINSTALL ({{ tdp_node_name }}): assemble config fragments"
+      assemble:
+        src: "{{ fragment_dir }}"
+        dest: "{{ scripts_dir }}/{{ tdp_node_name }}-virtinstall.sh"
+        owner: root
+        group: root
+        mode: 644
+
+    - name: "TASKS-VIRTINSTALL ({{ tdp_node_name }}): execute virt-install script"
+      shell:
+        cmd: |
+          bash "{{ scripts_dir }}/{{ tdp_node_name }}-virtinstall.sh"
+
+

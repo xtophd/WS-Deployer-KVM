@@ -1,0 +1,46 @@
+## Authors: 
+##   Christoph Doerbeck
+##
+## Summary:
+##
+##   This loop iterates over the (sorted) kvm_deploy_plan.passes
+##   and then includes the task-deploy-plan.yml to run deployment
+##   plays on the defined hostgroup
+##
+##   A deploy_plan pass is aligned 1-to-1 with a ansible hostgroup
+##   All hosts in deploy_plan pass use an identical deployment strategy
+##
+
+---
+- hosts: myVirthost
+
+  tasks:
+
+  - name: "LIBVIRT-DEPLOY: Create qcow directory"
+    file:
+      path: "{{ kvm_cfg.qcow_dir }}"
+      mode: "0775"
+      state: directory
+
+  ## I NEED TO COME BACK AND MOUNT ALL NEEDED REPOS IN DIFFERENT PLACES PRE KS_PROFILES
+  - name: "LIBVIRT-REPOSYNC: loopback mount ISO"
+    mount:
+      src:    "{{ kvm_cfg.iso.dir }}/{{ kvm_cfg.iso.name }}"
+      path:   "{{ kvm_cfg.iso.mount }}"
+      opts:   "loop,ro"
+      state:  "mounted"
+      fstype: "iso9660"
+
+  - name: "LIBVIRT-DEPLOY: pre-install'"
+    shell: "cd .. ; {{ kvm_deploy_plan.pre_install }}"
+    when: kvm_deploy_plan.pre_install != ""
+
+  - name: "LIBVIRT-DEPLOY: Iterating over passes"
+    include_tasks: tasks-deploy.yml
+    loop: "{{ kvm_deploy_plan['passes'] | flatten(1) | sort }}"
+    when: kvm_deploy_plan.passes[item]['hostgroup'] != ""
+
+  - name: "LIBVIRT-DEPLOY: post-install '{{ kvm_deploy_plan.post_install }}'"
+    shell: "cd .. ; {{ kvm_deploy_plan.post_install }}"
+    when: kvm_deploy_plan.post_install != ""
+

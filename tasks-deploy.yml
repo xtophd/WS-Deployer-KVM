@@ -1,0 +1,43 @@
+## Authors:
+##   Christoph Doerbeck
+##
+## Summary:
+##
+##
+##
+
+  - set_fact:
+      tdp_pass_name:         "{{ item }}"
+      tdp_hostgroup:         "{{ kvm_deploy_plan.passes[item]['hostgroup'] }}" 
+      tdp_pre_install:       "{{ kvm_deploy_plan.passes[item]['pre_install'] }}" 
+      tdp_post_config:       "{{ kvm_deploy_plan.passes[item]['post_config'] }}" 
+      tdp_post_install:      "{{ kvm_deploy_plan.passes[item]['post_install'] }}" 
+      tdp_wait_for_shutdown: "{{ kvm_deploy_plan.passes[item]['wait_for_shutdown'] }}" 
+      tdp_inject_sshkey:     "{{ kvm_deploy_plan.passes[item]['inject_sshkey'] }}" 
+
+
+  - name: "TASKS-DEPLOY-PASS: ({{ tdp_pass_name }},{{ tdp_hostgroup }}]) pre-install '{{ tdp_pre_install }}'"
+    shell: "cd .. ; {{ tdp_pre_install }}"
+    when: tdp_pre_install != ""
+
+
+  - name: "TASKS-DEPLOY-PASS: ({{ tdp_pass_name }},{{ tdp_hostgroup }}]) deploying nodes"
+    include_tasks: tasks-deploy-install-01.yml
+    loop: "{{ groups[tdp_hostgroup] }}"
+    loop_control:
+      loop_var: tdp_node_name
+
+  - name: "TASKS-DEPLOY-PASS: ({{ tdp_pass_name }},{{ tdp_hostgroup }}]) deploy post plays"
+    include_tasks: tasks-deploy-install-02.yml
+    loop: "{{ groups[tdp_hostgroup] }}"
+    loop_control:
+      loop_var: tdp_node_name
+
+  - name: "TASKS-DEPLOY-PASS: ({{ tdp_pass_name }},{{ tdp_hostgroup }}]) post-config" 
+    shell: "ansible-playbook -l {{ tdp_hostgroup }} -i ../config/master-config.yml -e @../config/libvirt-config.yml libvirt-deploy-postconfig.yml"
+    when: tdp_post_config == True
+
+  - name: "TASKS-DEPLOY-PASS: ({{ tdp_pass_name }},{{ tdp_hostgroup }}]) post-install '{{ tdp_post_install }}'"
+    shell: "cd .. ; {{ tdp_post_install }}"
+    when: tdp_post_install != ""
+

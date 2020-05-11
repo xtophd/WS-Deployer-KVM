@@ -45,22 +45,6 @@
   tags:
   - haproxy
 
-- import_playbook: libvirt-create-bastion.yml
+- import_playbook: libvirt-deploy.yml
   tags:
-  - bastion
-  - deploy
-
-- import_playbook: libvirt-create-nodes.yml
-  tags:
-  - nodes
-  - deploy
-
-- import_playbook: libvirt-postconfig.yml
-  tags:
-  - postconfig
-  - deploy
-
-- import_playbook: "{{ kvm_postinstall }}"
-  tags:
-  - postinstall
   - deploy

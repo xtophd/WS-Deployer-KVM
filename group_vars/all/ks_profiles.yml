@@ -1,0 +1,7 @@
+
+ks_profile:
+
+  rhel8_lvm:
+    template: "ks-rhel8-lvm.j2"
+    iso:      "rhel-8.1-x86_64-dvd.iso"
+

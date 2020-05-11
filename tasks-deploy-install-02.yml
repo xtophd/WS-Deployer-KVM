@@ -1,0 +1,79 @@
+## Authors: 
+##   Christoph Doerbeck
+##
+## Summary:
+##
+##
+##
+
+    - set_fact:
+        scripts_dir:   "/var/tmp/{{ g_clusterName }}"
+        fragment_dir:  "/var/tmp/{{ g_clusterName }}/{{ tdp_node_name }}-fragments"
+  
+        tdp_ks_dir:    "/var/www/html/ks"
+        tdp_ks_url:    "{{ kvm_cfg.ks_url }}"
+        tdp_ks_cfg:    "{{ g_clusterName }}-{{ tdp_node_name }}.cfg"
+
+        tdp_iso_path:  "{{ kvm_cfg.iso.dir }}"
+        tdp_iso_name:  "{{ ks_profile[hostvars[tdp_node_name]['h_ksPROF']].iso | default ('') }}"
+
+    - name: "TASKS-VIRTINSTALL ({{ tdp_node_name }}): wait for shutdown"
+      vars:
+        p_vmname:   "{{ g_clusterName }}-{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
+      shell:
+        cmd: |
+          virsh domstate "{{ p_vmname }}" | grep -q "shut off"
+      register: result
+      until:  result.rc == 0
+      retries: 600
+      delay: 5
+      when: tdp_wait_for_shutdown == True
+
+    - name: "TASKS-VIRTINSTALL ({{ tdp_node_name }}): inject ssh key to bastion vm"
+      vars:
+        p_vmname:   "{{ g_clusterName }}-{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
+      shell:
+        cmd: |
+          virt-customize -d "{{ p_vmname }}" \
+                         --ssh-inject root:file:/root/.ssh/id_rsa.pub \
+                         --selinux-relabel
+      when: 
+        - tdp_wait_for_shutdown == True
+        - tdp_inject_sshkey == True
+
+    - name: "TASKS-VIRTINSTALL ({{ tdp_node_name }}): start node back up"
+      vars:
+        p_vmname:   "{{ g_clusterName }}-{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
+      shell:
+        cmd: |
+          virsh start "{{ p_vmname }}"
+      when: tdp_wait_for_shutdown == True
+
+    - name: "TASKS-VIRTINSTALL ({{ tdp_node_name }}): wait for boot (check port 22)"
+      wait_for:
+        host: "{{ hostvars[tdp_node_name]['h_pubIP'] }}"
+        connect_timeout: 5
+        delay: 15
+        port: 22
+        sleep: 1
+        state: started
+        timeout: 300
+      when: tdp_wait_for_shutdown == True
+
+    - name: "TASKS-VIRTINSTALL ({{ tdp_node_name }}): clean up old ssh keys for node"
+      shell:
+        cmd: |
+          ssh-keygen -R "{{ hostvars[tdp_node_name]['inventory_hostname'] }}"
+          ssh-keygen -R "{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
+          ssh-keygen -R "{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}.{{ g_clusterName }}.{{ g_publicDomain }}"
+          ssh-keygen -R "{{ hostvars[tdp_node_name]['h_pubIP'] }}"
+      ignore_errors: yes
+
+    - name: "TASKS-VIRTINSTALL ({{ tdp_node_name }}): add new ssh keys for node"
+      vars:
+        p_fqdn:   "{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}.{{ g_pubFQDN }}"
+      shell:
+        cmd: |
+          ssh-keyscan "{{ p_fqdn }}" >> /root/.ssh/known_hosts
+      ignore_errors: yes
+
