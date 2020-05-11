@@ -20,7 +20,7 @@
 - hosts: myVirthost
 
   tasks:
- 
+
   - name: "LIBVIRT-BASICS: Create ssh directory"
     file:
       path: /root/.ssh
@@ -45,11 +45,11 @@
 
   - name: "LIBVIRT-BASICS: edit bastion public ssh key"
     vars:
-      p_name:     "{{ hostvars[item]['inventory_hostname_short'] }}"
-      p_fqdn:     "{{ hostvars[item]['inventory_hostname_short'] }}.{{ g_pubFQDN }}"
+      p_name:  "{{ hostvars[item]['inventory_hostname_short'] }}"
+      p_fqdn:  "{{ hostvars[item]['inventory_hostname_short'] }}.{{ g_pubFQDN }}"
     replace:
       path:    "/root/.ssh/bastion_rsa.pub"
-      regexp:   "root@.*$"
+      regexp:  "root@.*$"
       replace: "root@{{ p_fqdn }}"
     loop: "{{ groups['myBastion'] }}"
 
@@ -88,16 +88,40 @@
     fail: msg="COPY YOUR RHEL ISO HERE {{ kvm_cfg.iso.dir }}/{{ kvm_cfg.iso.name }}"
     when: test_rhel_iso.stat.exists == false
 
-  - name: "Subscription Manager enable required repos only"
+  - name: "Subscription Manager enable RHEL 7 required repos only"
     rhsm_repository: 
       name: "rhel-7-server-rpms,rhel-7-server-optional-rpms,rhel-7-server-extras-rpms"
       purge: True
       state: enabled
+    when:
+      - ansible_distribution == "Red Hat"
+      - ansible_distribution_major_version == "7"
 
-  - name: "LIBVIRT-BASICS: install general packages"
-    yum: name=git,tree,wget,yum-utils,firewalld,httpd,net-tools,traceroute,nmap,policycoreutils-python state=installed
+  - name: "Subscription Manager enable RHEL 8 required repos only"
+    rhsm_repository: 
+      name: "rhel-8-baseos-rpms,rhel-8-appstream-rpms"
+      purge: True
+      state: enabled
+    when:
+      - ansible_distribution == "Red Hat"
+      - ansible_distribution_major_version == "8"
 
-  - name: "LIBVIRT-BASICS: install virtualization packages"
+  - name: "LIBVIRT-BASICS: install RHEL8 unique packages"
+    yum: name=policycoreutils-python-utils state=installed
+    when:
+      - ansible_distribution == "Red Hat"
+      - ansible_distribution_major_version == "8"
+
+  - name: "LIBVIRT-BASICS: install RHEL7 unique packages"
+    yum: name=policycoreutils-python state=installed
+    when:
+      - ansible_distribution == "Red Hat"
+      - ansible_distribution_major_version == "7"
+
+  - name: "LIBVIRT-BASICS: install common general packages"
+    yum: name=git,tree,wget,yum-utils,firewalld,httpd,net-tools,traceroute,nmap state=installed
+
+  - name: "LIBVIRT-BASICS: install common virtualization packages"
     yum: name=qemu-kvm,libvirt,virt-install,libvirt-client,libguestfs-tools state=installed
 
   - name: "LIBVIRT-BASICS: deploy httpd configuration"
