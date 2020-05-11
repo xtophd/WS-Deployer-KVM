@@ -36,6 +36,7 @@
 - import_playbook: libvirt-network.yml
   tags:
   - network
+  - deploy
 
 - import_playbook: libvirt-dns.yml
   tags:
