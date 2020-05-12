@@ -2,20 +2,19 @@
 ##
 ## Summary:
 ##
+## I am using blocks to:
 ##
+##   localize variables to related tasks
+##   define variables once and in one place
+##   reduces cut & paste errors and make debugging MUCH easier
 ##
 
-    - set_fact:
-
-        scripts_dir:    "/var/tmp/{{ g_clusterName }}"
-        fragment_dir:   "/var/tmp/{{ g_clusterName }}/{{ tdp_node_name }}-fragments"
-
-    ######################################## 
     ##
-    ## When an ISO is defined, setup loopback mounts for repo usage 
+    ## When an kickstart profile is defined, deploy ks.cfg and mount iso for repo access
     ##
 
     - block:
+
         - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): create kickstart dir '{{ b_ks_dir }}'"
           file: path="{{ b_ks_dir }}" mode="0755" state=directory
 
@@ -63,172 +62,80 @@
       when: 
         - hostvars[tdp_node_name]['h_ksPROF'] != ""
 
-#    - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): create kickstart dir"
-#      file: path="{{ kvm_cfg.kickstart.dir }}" mode="0755" state=directory
-#      when: ks_profile[hostvars[tdp_node_name]['h_ksPROF']].iso != ""
-
-#    - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): deploy kickstart"
-#      vars:
-#        p_diskDevice: "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].disk.dev }}"
-#      template:
-#        src:  "{{ ks_profile[hostvars[tdp_node_name]['h_ksPROF']].template }}"
-#        dest: "{{ kvm_cfg.kickstart.dir}}/{{ g_clusterName }}-{{ tdp_node_name }}.cfg"
-#        owner: root
-#        group: apache
-#        mode: 0644
-#      when: ks_profile[hostvars[tdp_node_name]['h_ksPROF']].iso != ""
-
-#    - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): stat repo mount point"
-#      vars:
-#        p_repo_dir: "{{ kvm_cfg.repo.dir | default ('') }}"
-#        p_repo_mnt: "{{ ks_profile[hostvars[tdp_node_name]['h_ksPROF']].mnt | default ('') }}"
-#      stat: path="{{ p_repo_dir }}/{{ p_repo_mnt }}"
-#      register: test_repo_mount
-#      when: ks_profile[hostvars[tdp_node_name]['h_ksPROF']].iso != ""
-
-#    - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): create repo mount"
-#      vars:
-#        p_repo_dir: "{{ kvm_cfg.repo.dir | default ('') }}"
-#        p_repo_mnt: "{{ ks_profile[hostvars[tdp_node_name]['h_ksPROF']].mnt | default ('') }}"
-#      file: path="{{ p_repo_dir }}/{{ p_repo_mnt }}" mode="0755" state=directory
-#      when: 
-#        - ks_profile[hostvars[tdp_node_name]['h_ksPROF']].iso != ""
-#        - test_repo_mount.stat.exists == false
-
-#    - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): loopback mount ISO"
-#      vars:
-#        p_iso_path: "{{ kvm_cfg.iso.dir | default ('') }}"
-#        p_repo_dir: "{{ kvm_cfg.repo.dir | default ('') }}"
-#        p_iso_name: "{{ ks_profile[hostvars[tdp_node_name]['h_ksPROF']].iso | default ('') }}"
-#        p_repo_mnt: "{{ ks_profile[hostvars[tdp_node_name]['h_ksPROF']].mnt | default ('') }}"
-#      mount:
-#        path:   "{{ p_repo_dir }}/{{ p_repo_mnt }}"
-#        src:    "{{ p_iso_path }}/{{ p_iso_name }}"
-#        opts:   "loop,ro"
-#        state:  "mounted"
-#        fstype: "iso9660"
-#      when: ks_profile[hostvars[tdp_node_name]['h_ksPROF']].iso != ""
-
-
-    ######################################## 
     ##
     ## Now get on with virt-install
     ##
 
-    - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): clean {{ fragment_dir }}"
-      shell: "rm -rf {{ fragment_dir }}"
+    - block:
+
+        - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): clean {{ fragment_dir }}"
+          shell: "rm -rf {{ fragment_dir }}"
         
-    - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): create {{ fragment_dir }}"
-      file: path="{{ fragment_dir }}" mode="0755" state=directory
+        - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): create {{ fragment_dir }}"
+          file: path="{{ fragment_dir }}" mode="0755" state=directory
 
-    - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): create virt-install command base"
+        - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): create virt-install command base"
+          template:
+            src:  virtinstall-base.j2
+            dest: "{{ fragment_dir }}/10-base"
+
+        - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): adding ISO location"
+          template:
+            src: virtinstall-location.j2
+            dest: "{{ fragment_dir }}/20-location"
+          when: p_iso_name != ""
+
+        - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): add extra disks to virt-install command"
+          vars:
+            p_disksize: "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']]['storage']['extra'][p_diskname].size }}"
+          template:
+            src: virtinstall-extra.j2
+            dest: "{{ fragment_dir }}/30-extra-{{ p_diskname }}"
+          loop: "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']].storage.extra | flatten(1) }}"
+          loop_control:
+            loop_var: p_diskname
+          when: rs_profile[hostvars[tdp_node_name]['h_rsPROF']].storage.extra is defined
+
+        - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): complete virt-install command"
+          template:
+            src: virtinstall-finish.j2
+            dest: "{{ fragment_dir }}/50-finish"
+
+        - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): assemble config fragments"
+          assemble:
+            src: "{{ fragment_dir }}"
+            dest: "{{ scripts_dir }}/{{ tdp_node_name }}-virtinstall.sh"
+            owner: root
+            group: root
+            mode: 644
+
+        - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): execute virt-install script"
+          shell:
+            cmd: |
+              bash "{{ scripts_dir }}/{{ tdp_node_name }}-virtinstall.sh"
+
       vars:
-        p_name:     "{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
-        p_vmname:   "{{ g_clusterName }}-{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
-        p_location: "{{ kvm_cfg.iso.dir }}/{{ ks_profile[hostvars[tdp_node_name]['h_ksPROF']].iso | default ('') }}"
-        p_ksurl:    "{{ kvm_cfg.kickstart.url}}/{{ g_clusterName }}-{{ tdp_node_name }}.cfg"
-        p_mac:      "{{ hostvars[tdp_node_name]['h_pubMAC'] }}"
-        p_ip:       "{{ hostvars[tdp_node_name]['h_pubIP'] }}"
-        p_nm:       "{{ hostvars[tdp_node_name]['g_pubNM'] }}"
-        p_gw:       "{{ hostvars[tdp_node_name]['g_pubGW'] }}"
-        p_bus:      "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].disk.bus }}"
-        p_dns:      "{{ hostvars[tdp_node_name]['g_pubDNS'] }}"
-        p_sparse:   "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].disk.sparse }}"
-        p_netdev:   "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].network.model }}"
-        p_disksize: "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']].storage.root.size }}"
-        p_memsize:  "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']].memsize }}"
-        p_vcpu:     "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']].vcpus }}"
-        p_cpu:      "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].cpu.type | default ('host-model') }}"
-      template:
-        src:  virtinstall-base.j2
-        dest: "{{ fragment_dir }}/10-base"
 
-    - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): adding ISO location"
-      vars:
-        p_name:     "{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
-        p_vmname:   "{{ g_clusterName }}-{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
-        p_location: "{{ kvm_cfg.iso.dir }}/{{ ks_profile[hostvars[tdp_node_name]['h_ksPROF']].iso | default ('') }}"
-        p_ksurl:    "{{ kvm_cfg.kickstart.url}}/{{ g_clusterName }}-{{ tdp_node_name }}.cfg"
-        p_mac:      "{{ hostvars[tdp_node_name]['h_pubMAC'] }}"
-        p_ip:       "{{ hostvars[tdp_node_name]['h_pubIP'] }}"
-        p_nm:       "{{ hostvars[tdp_node_name]['g_pubNM'] }}"
-        p_gw:       "{{ hostvars[tdp_node_name]['g_pubGW'] }}"
-        p_bus:      "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].disk.bus }}"
-        p_dns:      "{{ hostvars[tdp_node_name]['g_pubDNS'] }}"
-        p_sparse:   "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].disk.sparse }}"
-        p_netdev:   "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].network.model }}"
-        p_disksize: "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']].storage.root.size }}"
-        p_memsize:  "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']].memsize }}"
-        p_vcpu:     "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']].vcpus }}"
-        p_cpu:      "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].cpu.type | default ('host-model') }}"
-      template:
-        src: virtinstall-location.j2
-        dest: "{{ fragment_dir }}/20-location"
-      when: ks_profile[hostvars[tdp_node_name]['h_ksPROF']].iso != ""
+        scripts_dir:  "/var/tmp/{{ g_clusterName }}"
+        fragment_dir: "/var/tmp/{{ g_clusterName }}/{{ tdp_node_name }}-fragments"
 
-#    - debug:
-#        msg: "{{ p_diskname }}"
-#      loop: "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']].storage.extra | flatten(1) }}"
-#      loop_control:
-#        loop_var: p_diskname
-#      when: rs_profile[hostvars[tdp_node_name]['h_rsPROF']].storage.extra is defined
-
-    - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): add extra disks to virt-install command"
-      vars:
-        p_name:     "{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
-        p_vmname:   "{{ g_clusterName }}-{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
-        p_location: "{{ kvm_cfg.iso.dir }}/{{ ks_profile[hostvars[tdp_node_name]['h_ksPROF']].iso | default ('') }}"
-        p_mac:      "{{ hostvars[tdp_node_name]['h_pubMAC'] }}"
-        p_ip:       "{{ hostvars[tdp_node_name]['h_pubIP'] }}"
-        p_nm:       "{{ hostvars[tdp_node_name]['g_pubNM'] }}"
-        p_gw:       "{{ hostvars[tdp_node_name]['g_pubGW'] }}"
-        p_bus:      "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].disk.bus }}"
-        p_dns:      "{{ hostvars[tdp_node_name]['g_pubDNS'] }}"
-        p_sparse:   "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].disk.sparse }}"
-        p_netdev:   "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].network.model }}"
-        p_disksize: "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']]['storage']['extra'][p_diskname].size }}"
-        p_memsize:  "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']].memsize }}"
-        p_cpu:      "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']].vcpus }}"
-      template:
-        src: virtinstall-extra.j2
-        dest: "{{ fragment_dir }}/30-extra-{{ p_diskname }}"
-      loop: "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']].storage.extra | flatten(1) }}"
-      loop_control:
-        loop_var: p_diskname
-      when: rs_profile[hostvars[tdp_node_name]['h_rsPROF']].storage.extra is defined
-
-    - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): complete virt-install command"
-      vars:
-        p_name:     "{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
-        p_vmname:   "{{ g_clusterName }}-{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
-        p_location: "{{ kvm_cfg.iso.dir }}/{{ ks_profile[hostvars[tdp_node_name]['h_ksPROF']].iso | default ('') }}"
-        p_ksurl:    "{{ kvm_cfg.kickstart.url}}/{{ g_clusterName }}-{{ tdp_node_name }}.cfg"
-        p_mac:      "{{ hostvars[tdp_node_name]['h_pubMAC'] }}"
-        p_ip:       "{{ hostvars[tdp_node_name]['h_pubIP'] }}"
-        p_nm:       "{{ hostvars[tdp_node_name]['g_pubNM'] }}"
-        p_gw:       "{{ hostvars[tdp_node_name]['g_pubGW'] }}"
-        p_bus:      "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].disk.bus }}"
-        p_dns:      "{{ hostvars[tdp_node_name]['g_pubDNS'] }}"
-        p_sparse:   "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].disk.sparse }}"
-        p_netdev:   "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].network.model }}"
-        p_disksize: "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']].storage.root.size }}"
-        p_memsize:  "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']].memsize }}"
-        p_cpu:      "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']].vcpus }}"
-      template:
-        src: virtinstall-finish.j2
-        dest: "{{ fragment_dir }}/50-finish"
-
-    - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): assemble config fragments"
-      assemble:
-        src: "{{ fragment_dir }}"
-        dest: "{{ scripts_dir }}/{{ tdp_node_name }}-virtinstall.sh"
-        owner: root
-        group: root
-        mode: 644
-
-    - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): execute virt-install script"
-      shell:
-        cmd: |
-          bash "{{ scripts_dir }}/{{ tdp_node_name }}-virtinstall.sh"
-
+        p_ks_profile: "{{ hostvars[tdp_node_name]['h_ksPROF'] | default ('') }}"
+        p_iso_name:   "{{ ks_profile[p_ks_profile].iso | default ('') }}"
+        p_iso_dir:    "{{ kvm_cfg.iso.dir | default ('') }}"
+        p_name:       "{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
+        p_vmname:     "{{ g_clusterName }}-{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
+        p_location:   "{{ p_iso_dir }}/{{ p_iso_name }}"
+        p_ksurl:      "{{ kvm_cfg.kickstart.url}}/{{ g_clusterName }}-{{ tdp_node_name }}.cfg"
+        p_mac:        "{{ hostvars[tdp_node_name]['h_pubMAC'] }}"
+        p_ip:         "{{ hostvars[tdp_node_name]['h_pubIP'] }}"
+        p_nm:         "{{ hostvars[tdp_node_name]['g_pubNM'] }}"
+        p_gw:         "{{ hostvars[tdp_node_name]['g_pubGW'] }}"
+        p_bus:        "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].disk.bus }}"
+        p_dns:        "{{ hostvars[tdp_node_name]['g_pubDNS'] }}"
+        p_sparse:     "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].disk.sparse }}"
+        p_netdev:     "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].network.model }}"
+        p_memsize:    "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']].memsize }}"
+        p_disksize:   "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']].storage.root.size }}"
+        p_vcpu:       "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']].vcpus }}"
+        p_cpu:        "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].cpu.type | default ('host-model') }}"
 
