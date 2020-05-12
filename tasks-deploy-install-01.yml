@@ -1,4 +1,3 @@
-## Authors: 
 ##   Christoph Doerbeck
 ##
 ## Summary:
@@ -6,75 +5,114 @@
 ##
 ##
 
-
-    - set_fact:
-
-        tdp_ks_profile: "{{ hostvars[tdp_node_name]['h_ksPROF'] | default ('') }}"
-
     - set_fact:
 
         scripts_dir:    "/var/tmp/{{ g_clusterName }}"
         fragment_dir:   "/var/tmp/{{ g_clusterName }}/{{ tdp_node_name }}-fragments"
-  
-        tdp_ks_dir:     "{{ kvm_cfg.kickstart.dir }}"
-        tdp_ks_url:     "{{ kvm_cfg.kickstart.url }}"
-        tdp_ks_cfg:     "{{ g_clusterName }}-{{ tdp_node_name }}.cfg"
 
-        tdp_iso_path:   "{{ kvm_cfg.iso.dir | default ('') }}"
-        tdp_iso_name:   "{{ ks_profile[tdp_ks_profile].iso | default ('') }}"
+    ######################################## 
+    ##
+    ## When an ISO is defined, setup loopback mounts for repo usage 
+    ##
 
-        tdp_repo_dir:   "{{ kvm_cfg.repo.dir | default ('') }}"
-        tdp_repo_mnt:   "{{ ks_profile[tdp_ks_profile].mnt | default ('') }}"
+    - block:
+        - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): create kickstart dir '{{ b_ks_dir }}'"
+          file: path="{{ b_ks_dir }}" mode="0755" state=directory
 
-    - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): debug some varilables"
-      debug:
-        msg:
-          - "{{ scripts_dir }}"
-          - "{{ fragment_dir }}"
-          - "{{ tdp_ks_profile }}"
-          - "{{ tdp_ks_dir }}"
-          - "{{ tdp_ks_url }}"
-          - "{{ tdp_ks_cfg }}"
-          - "{{ tdp_iso_path }}"
-          - "{{ tdp_iso_name }}"
-          - "{{ tdp_repo_dir }}"
-          - "{{ tdp_repo_mnt }}"
+        - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): deploying kickstart '{{ b_ks_cfg }}'"
+          vars:
+            p_diskDevice: "{{ hw_profile[b_hw_profile].disk.dev }}"
+          template:
+            src:  "{{ ks_profile[b_ks_profile].template }}"
+            dest: "{{ b_ks_dir }}/{{ b_ks_cfg }}"
+            owner: root
+            group: apache
+            mode: 0644
 
-    - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): create {{ tdp_ks_dir }}"
-      file: path="{{ tdp_ks_dir }}" mode="0755" state=directory
-      when: tdp_iso_name != "" 
+        - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): stat repo mount point '{{ b_repo_dir }}/{{ b_repo_subdir }}'"
+          stat: path="{{ b_repo_dir }}/{{ b_repo_subdir }}"
+          register: test_repo_mount
 
-    - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): deploy kickstart"
+        - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): create repo mount point '{{ b_repo_dir }}/{{ b_repo_subdir }}'"
+          file: path="{{ b_repo_dir }}/{{ p_repo_subdir }}" mode="0755" state=directory
+          when: 
+            - test_repo_mount.stat.exists == false
+
+        - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): mount repo '{{ b_repo_dir }}/{{ b_repo_subdir }}' on '{{ b_repo_dir }}/{{ b_repo_subdir }}'"
+          vars:
+          mount:
+            path:   "{{ b_repo_dir }}/{{ b_repo_subdir }}"
+            src:    "{{ b_iso_dir }}/{{ b_iso_name }}"
+            opts:   "loop,ro"
+            state:  "mounted"
+            fstype: "iso9660"
+
       vars:
-        - p_diskDevice: "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].disk.dev }}"
-      template:
-        src:  "{{ ks_profile[hostvars[tdp_node_name]['h_ksPROF']].template }}"
-        dest: "{{ tdp_ks_dir }}/{{ tdp_ks_cfg }}"
-        owner: root
-        group: apache
-        mode: 0644
-      when: tdp_iso_name != "" 
+        b_hw_profile:    "{{ hostvars[tdp_node_name]['h_hwPROF'] | default ('') }}"
+        b_ks_profile:    "{{ hostvars[tdp_node_name]['h_ksPROF'] | default ('') }}"
+        b_ks_dir:        "{{ kvm_cfg.kickstart.dir }}"
+        b_ks_template:   "{{ kvm_cfg.kickstart.dir }}"
+        b_ks_cfg:        "{{ g_clusterName }}-{{ tdp_node_name }}.cfg"
+        b_repo_dir:      "{{ kvm_cfg.repo.dir | default ('') }}"
+        b_repo_subdir:   "{{ ks_profile[hostvars[tdp_node_name]['h_ksPROF']].mnt | default ('') }}"
+        b_iso_name:      "{{ ks_profile[hostvars[tdp_node_name]['h_ksPROF']].iso | default ('') }}"
+        b_iso_dir:       "{{ kvm_cfg.iso.dir | default ('') }}"
 
-    - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): stat repo mount point {{ tdp_repo_dir }}/{{ tdp_repo_mnt }}"
-      stat: path="{{ tdp_repo_dir }}/{{ tdp_repo_mnt }}"
-      register: test_repo_mount
-      when: tdp_iso_name != "" 
-
-    - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): create repo mount {{ tdp_repo_dir }}/{{ tdp_repo_mnt }}"
-      file: path="{{ tdp_repo_dir }}/{{ tdp_repo_mnt }}" mode="0755" state=directory
       when: 
-        - tdp_iso_name != "" 
-        - test_repo_mount.stat.exists == false
+        - hostvars[tdp_node_name]['h_ksPROF'] != ""
+        - ks_profile[hostvars[tdp_node_name]['h_ksPROF']].iso != ""
 
-    - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): loopback mount ISO {{ tdp_iso_name }} at {{ tdp_repo_dir }}/{{ tdp_repo_mnt }}"
-      mount:
-        path:   "{{ tdp_repo_dir }}/{{ tdp_repo_mnt }}"
-        src:    "{{ tdp_iso_path }}/{{ tdp_iso_name }}"
-        opts:   "loop,ro"
-        state:  "mounted"
-        fstype: "iso9660"
-      when: 
-        - tdp_iso_name != "" 
+#    - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): create kickstart dir"
+#      file: path="{{ kvm_cfg.kickstart.dir }}" mode="0755" state=directory
+#      when: ks_profile[hostvars[tdp_node_name]['h_ksPROF']].iso != ""
+
+#    - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): deploy kickstart"
+#      vars:
+#        p_diskDevice: "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].disk.dev }}"
+#      template:
+#        src:  "{{ ks_profile[hostvars[tdp_node_name]['h_ksPROF']].template }}"
+#        dest: "{{ kvm_cfg.kickstart.dir}}/{{ g_clusterName }}-{{ tdp_node_name }}.cfg"
+#        owner: root
+#        group: apache
+#        mode: 0644
+#      when: ks_profile[hostvars[tdp_node_name]['h_ksPROF']].iso != ""
+
+#    - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): stat repo mount point"
+#      vars:
+#        p_repo_dir: "{{ kvm_cfg.repo.dir | default ('') }}"
+#        p_repo_mnt: "{{ ks_profile[hostvars[tdp_node_name]['h_ksPROF']].mnt | default ('') }}"
+#      stat: path="{{ p_repo_dir }}/{{ p_repo_mnt }}"
+#      register: test_repo_mount
+#      when: ks_profile[hostvars[tdp_node_name]['h_ksPROF']].iso != ""
+
+#    - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): create repo mount"
+#      vars:
+#        p_repo_dir: "{{ kvm_cfg.repo.dir | default ('') }}"
+#        p_repo_mnt: "{{ ks_profile[hostvars[tdp_node_name]['h_ksPROF']].mnt | default ('') }}"
+#      file: path="{{ p_repo_dir }}/{{ p_repo_mnt }}" mode="0755" state=directory
+#      when: 
+#        - ks_profile[hostvars[tdp_node_name]['h_ksPROF']].iso != ""
+#        - test_repo_mount.stat.exists == false
+
+#    - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): loopback mount ISO"
+#      vars:
+#        p_iso_path: "{{ kvm_cfg.iso.dir | default ('') }}"
+#        p_repo_dir: "{{ kvm_cfg.repo.dir | default ('') }}"
+#        p_iso_name: "{{ ks_profile[hostvars[tdp_node_name]['h_ksPROF']].iso | default ('') }}"
+#        p_repo_mnt: "{{ ks_profile[hostvars[tdp_node_name]['h_ksPROF']].mnt | default ('') }}"
+#      mount:
+#        path:   "{{ p_repo_dir }}/{{ p_repo_mnt }}"
+#        src:    "{{ p_iso_path }}/{{ p_iso_name }}"
+#        opts:   "loop,ro"
+#        state:  "mounted"
+#        fstype: "iso9660"
+#      when: ks_profile[hostvars[tdp_node_name]['h_ksPROF']].iso != ""
+
+
+    ######################################## 
+    ##
+    ## Now get on with virt-install
+    ##
 
     - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): clean {{ fragment_dir }}"
       shell: "rm -rf {{ fragment_dir }}"
@@ -86,8 +124,8 @@
       vars:
         p_name:     "{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
         p_vmname:   "{{ g_clusterName }}-{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
-        p_location: "{{ tdp_iso_path }}/{{ tdp_iso_name }}"
-        p_ksurl:    "{{ tdp_ks_url }}/{{ tdp_ks_cfg }}"
+        p_location: "{{ kvm_cfg.iso.dir }}/{{ ks_profile[hostvars[tdp_node_name]['h_ksPROF']].iso | default ('') }}"
+        p_ksurl:    "{{ kvm_cfg.kickstart.url}}/{{ g_clusterName }}-{{ tdp_node_name }}.cfg"
         p_mac:      "{{ hostvars[tdp_node_name]['h_pubMAC'] }}"
         p_ip:       "{{ hostvars[tdp_node_name]['h_pubIP'] }}"
         p_nm:       "{{ hostvars[tdp_node_name]['g_pubNM'] }}"
@@ -108,8 +146,8 @@
       vars:
         p_name:     "{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
         p_vmname:   "{{ g_clusterName }}-{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
-        p_location: "{{ tdp_iso_path }}/{{ tdp_iso_name }}"
-        p_ksurl:    "{{ tdp_ks_url }}/{{ tdp_ks_cfg }}"
+        p_location: "{{ kvm_cfg.iso.dir }}/{{ ks_profile[hostvars[tdp_node_name]['h_ksPROF']].iso | default ('') }}"
+        p_ksurl:    "{{ kvm_cfg.kickstart.url}}/{{ g_clusterName }}-{{ tdp_node_name }}.cfg"
         p_mac:      "{{ hostvars[tdp_node_name]['h_pubMAC'] }}"
         p_ip:       "{{ hostvars[tdp_node_name]['h_pubIP'] }}"
         p_nm:       "{{ hostvars[tdp_node_name]['g_pubNM'] }}"
@@ -125,7 +163,7 @@
       template:
         src: virtinstall-location.j2
         dest: "{{ fragment_dir }}/20-location"
-      when: tdp_iso_name != "" 
+      when: ks_profile[hostvars[tdp_node_name]['h_ksPROF']].iso != ""
 
 #    - debug:
 #        msg: "{{ p_diskname }}"
@@ -138,7 +176,7 @@
       vars:
         p_name:     "{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
         p_vmname:   "{{ g_clusterName }}-{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
-        p_location: "{{ tdp_iso_path }}/{{ tdp_iso_name }}"
+        p_location: "{{ kvm_cfg.iso.dir }}/{{ ks_profile[hostvars[tdp_node_name]['h_ksPROF']].iso | default ('') }}"
         p_mac:      "{{ hostvars[tdp_node_name]['h_pubMAC'] }}"
         p_ip:       "{{ hostvars[tdp_node_name]['h_pubIP'] }}"
         p_nm:       "{{ hostvars[tdp_node_name]['g_pubNM'] }}"
@@ -162,8 +200,8 @@
       vars:
         p_name:     "{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
         p_vmname:   "{{ g_clusterName }}-{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
-        p_location: "{{ tdp_iso_path }}/{{ tdp_iso_name }}"
-        p_ksurl:    "{{ tdp_ks_url }}/{{ tdp_ks_cfg }}"
+        p_location: "{{ kvm_cfg.iso.dir }}/{{ ks_profile[hostvars[tdp_node_name]['h_ksPROF']].iso | default ('') }}"
+        p_ksurl:    "{{ kvm_cfg.kickstart.url}}/{{ g_clusterName }}-{{ tdp_node_name }}.cfg"
         p_mac:      "{{ hostvars[tdp_node_name]['h_pubMAC'] }}"
         p_ip:       "{{ hostvars[tdp_node_name]['h_pubIP'] }}"
         p_nm:       "{{ hostvars[tdp_node_name]['g_pubNM'] }}"
