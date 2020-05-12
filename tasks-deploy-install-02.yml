@@ -12,7 +12,7 @@
         fragment_dir:  "/var/tmp/{{ g_clusterName }}/{{ tdp_node_name }}-fragments"
   
         tdp_ks_dir:    "/var/www/html/ks"
-        tdp_ks_url:    "{{ kvm_cfg.ks_url }}"
+        tdp_ks_url:    "{{ kvm_cfg.kickstart.url }}"
         tdp_ks_cfg:    "{{ g_clusterName }}-{{ tdp_node_name }}.cfg"
 
         tdp_iso_path:  "{{ kvm_cfg.iso.dir }}"

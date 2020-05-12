@@ -22,14 +22,14 @@
       mode: "0775"
       state: directory
 
-  ## I NEED TO COME BACK AND MOUNT ALL NEEDED REPOS IN DIFFERENT PLACES PRE KS_PROFILES
-  - name: "LIBVIRT-REPOSYNC: loopback mount ISO"
-    mount:
-      src:    "{{ kvm_cfg.iso.dir }}/{{ kvm_cfg.iso.name }}"
-      path:   "{{ kvm_cfg.iso.mount }}"
-      opts:   "loop,ro"
-      state:  "mounted"
-      fstype: "iso9660"
+#  ## I NEED TO COME BACK AND MOUNT ALL NEEDED REPOS IN DIFFERENT PLACES PER KS_PROFILES
+#  - name: "LIBVIRT-REPOSYNC: loopback mount ISO"
+#    mount:
+#      src:    "{{ kvm_cfg.iso.dir }}/{{ kvm_cfg.iso.name }}"
+#      path:   "{{ kvm_cfg.iso.mount }}"
+#      opts:   "loop,ro"
+#      state:  "mounted"
+#      fstype: "iso9660"
 
   - name: "LIBVIRT-DEPLOY: pre-install'"
     shell: "cd .. ; {{ kvm_deploy_plan.pre_install }}"

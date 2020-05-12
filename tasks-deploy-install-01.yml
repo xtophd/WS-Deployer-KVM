@@ -6,16 +6,42 @@
 ##
 ##
 
+    # tdp = task deploy pass [variables good for this deploy pass]
+
     - set_fact:
         scripts_dir:   "/var/tmp/{{ g_clusterName }}"
         fragment_dir:  "/var/tmp/{{ g_clusterName }}/{{ tdp_node_name }}-fragments"
   
-        tdp_ks_dir:    "/var/www/html/ks"
-        tdp_ks_url:    "{{ kvm_cfg.ks_url }}"
+        tdp_ks_dir:    "{{ kvm_cfg.kickstart.dir }}"
+        tdp_ks_url:    "{{ kvm_cfg.kickstart.url }}"
         tdp_ks_cfg:    "{{ g_clusterName }}-{{ tdp_node_name }}.cfg"
 
         tdp_iso_path:  "{{ kvm_cfg.iso.dir }}"
         tdp_iso_name:  "{{ ks_profile[hostvars[tdp_node_name]['h_ksPROF']].iso | default ('') }}"
+
+        tdp_repo_dir:  "{{ kvm_cfg.repo.dir | default ('') }}"
+        tdp_repo_port: "{{ kvm_cfg.repo.port | default ('') }}"
+        tdp_repo_mnt:  "{{ ks_profile[hostvars[tdp_node_name]['h_ksPROF']].mnt | default ('') }}"
+
+
+    - debug:
+        verbosity: 1
+        msg: 
+        - "{{ hostvars[tdp_node_name]['h_ksPROF'] }}"
+        - "{{ ks_profile[hostvars[tdp_node_name]['h_ksPROF']] }}"
+        - " -- KS STUFF -- "
+        - "{{ tdp_ks_dir }}"
+        - "{{ tdp_ks_url }}"
+        - "{{ tdp_ks_cfg }}"
+        - " -- ISO STUFF -- "
+        - "{{ tdp_iso_path }}"
+        - "{{ tdp_iso_name }}"
+        - " -- REPO STUFF -- "
+        - "{{ tdp_repo_dir }}"
+        - "{{ tdp_repo_mnt }}"
+        - "{{ tdp_repo_port }}"
+
+
 
     - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): create {{ tdp_ks_dir }}"
       file: path="{{ tdp_ks_dir }}" mode="0755" state=directory
@@ -31,6 +57,25 @@
         group: apache
         mode: 0644
       when: tdp_iso_name != "" 
+
+    - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): stat repo mount point"
+      stat: path="{{ tdp_repo_dir }}/{{ tdp_repo_mnt }}"
+      register: test_repo_mount
+      when: tdp_iso_name != "" 
+
+    - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): create repo mount {{ tdp_repo_dir }}/{{ tdp_repo_mnt }}"
+      file: path="{{ tdp_repo_dir }}/{{ tdp_repo_mnt }}" mode="0755" state=directory
+      when: 
+        - tdp_iso_name != "" 
+        - test_repo_mount.stat.exists == false
+
+    - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): loopback mount ISO {{ tdp_iso_name }} at {{ tdp_repo_dir }}/{{ tdp_repo_mnt }}"
+      mount:
+        path:   "{{ tdp_repo_dir }}/{{ tdp_repo_mnt }}"
+        src:    "{{ tdp_iso_path }}/{{ tdp_iso_name }}"
+        opts:   "loop,ro"
+        state:  "mounted"
+        fstype: "iso9660"
 
     - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): clean {{ fragment_dir }}"
       shell: "rm -rf {{ fragment_dir }}"
