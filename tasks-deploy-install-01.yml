@@ -32,6 +32,7 @@
         - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): stat repo mount point '{{ b_repo_dir }}/{{ b_repo_subdir }}'"
           stat: path="{{ b_repo_dir }}/{{ b_repo_subdir }}"
           register: test_repo_mount
+          when: b_iso_name != ""
 
         - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): create repo mount point '{{ b_repo_dir }}/{{ b_repo_subdir }}'"
           file: path="{{ b_repo_dir }}/{{ p_repo_subdir }}" mode="0755" state=directory
@@ -46,6 +47,7 @@
             opts:   "loop,ro"
             state:  "mounted"
             fstype: "iso9660"
+          when: b_iso_name != ""
 
       vars:
         b_hw_profile:    "{{ hostvars[tdp_node_name]['h_hwPROF'] | default ('') }}"
@@ -60,7 +62,6 @@
 
       when: 
         - hostvars[tdp_node_name]['h_ksPROF'] != ""
-        - ks_profile[hostvars[tdp_node_name]['h_ksPROF']].iso != ""
 
 #    - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): create kickstart dir"
 #      file: path="{{ kvm_cfg.kickstart.dir }}" mode="0755" state=directory
