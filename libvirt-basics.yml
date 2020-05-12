@@ -174,10 +174,10 @@
 #      cmd: |
 #        semanage port -a -t http_port_t -p tcp {{ kvm_cfg.http_port }}
 
-  - name: "LIBVIRT-BASICS: loopback mount ISO as repo"
-    mount:
-      src:    "{{ kvm_cfg.iso.dir }}/{{ kvm_cfg.iso.name }}"
-      path:   "{{ kvm_cfg.iso.mount }}"
-      opts:   "loop,ro"
-      state:  "mounted"
-      fstype: "iso9660"
+#  - name: "LIBVIRT-BASICS: loopback mount ISO as repo"
+#    mount:
+#      src:    "{{ kvm_cfg.iso.dir }}/{{ kvm_cfg.iso.name }}"
+#      path:   "{{ kvm_cfg.iso.mount }}"
+#      opts:   "loop,ro"
+#      state:  "mounted"
+#      fstype: "iso9660"
