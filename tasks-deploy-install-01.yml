@@ -34,7 +34,7 @@
           when: b_iso_name != ""
 
         - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): create repo mount point '{{ b_repo_dir }}/{{ b_repo_subdir }}'"
-          file: path="{{ b_repo_dir }}/{{ p_repo_subdir }}" mode="0755" state=directory
+          file: path="{{ b_repo_dir }}/{{ b_repo_subdir }}" mode="0755" state=directory
           when: 
             - test_repo_mount.stat.exists == false
 
