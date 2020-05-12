@@ -30,7 +30,7 @@
       delay: 5
       when: tdp_wait_for_shutdown == True
 
-    - name: "TASKS-DEPLOY-INSTALL-02 ({{ tdp_node_name }}): inject ssh key to bastion vm"
+    - name: "TASKS-DEPLOY-INSTALL-02 ({{ tdp_node_name }}): customize image with injected ssh key"
       vars:
         p_vmname:   "{{ g_clusterName }}-{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
       shell:
