@@ -127,6 +127,9 @@
   - name: "LIBVIRT-BASICS: install common virtualization packages"
     yum: name=qemu-kvm,libvirt,virt-install,libvirt-client,libguestfs-tools state=installed
 
+  - name: "LIBVIRT-BASICS: remove common conflicting packages"
+    yum: name=mod_ssl state=absent
+
   - name: "LIBVIRT-BASICS: deploy httpd configuration"
     vars:
       - p_port: "{{ kvm_cfg.http_port }}"
@@ -166,6 +169,33 @@
       state: enabled
     with_items:
       - "{{ kvm_cfg.http_port }}/tcp"
+
+  - name: "LIBVIRT-BASICS: add firewalld services"
+    firewalld:
+      service: "{{ item }}"
+      immediate: yes
+      permanent: yes
+      state: enabled
+      zone: libvirt
+    with_items:
+      - "http"
+      - "https"
+    when:
+      - ansible_distribution == "Red Hat"
+      - ansible_distribution_major_version == "8"
+
+  - name: "LIBVIRT-BASICS: add firewalld ports"
+    firewalld:
+      port: "{{ item }}"
+      immediate: yes
+      permanent: yes
+      state: enabled
+      zone: libvirt
+    with_items:
+      - "{{ kvm_cfg.http_port }}/tcp"
+    when:
+      - ansible_distribution == "Red Hat"
+      - ansible_distribution_major_version == "8"
 
 # A reminder that if we use a port not natively included by selinux, we need to add it
 #   
