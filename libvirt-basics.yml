@@ -81,7 +81,7 @@
 
   - name: "Subscription Manager enable RHEL 8 required repos only"
     rhsm_repository: 
-      name: "rhel-8-baseos-rpms,rhel-8-appstream-rpms"
+      name: "rhel-8-for-x86_64-baseos-rpms,rhel-8-for-x86_64-appstream-rpms"
       purge: True
       state: enabled
     when:
