@@ -67,27 +67,6 @@
       mode: "0775"
       state: directory
 
-#  - name: "LIBVIRT-BASICS: stat repo mount point"
-#    stat: path="{{ kvm_cfg.iso.mount }}"
-#    register: test_repo_mount
-
-#  - name: "LIBVIRT-BASICS: create repo mount point"
-#    when: test_repo_mount.stat.exists == false
-#    file:
-#      path: "{{ kvm_cfg.iso.mount }}"
-#      mode: "0755"
-#      owner: "root"
-#      group: "root"
-#      state: directory
-
-#  - name: "LIBVIRT-BASICS: stat RHEL ISO"
-#    stat: path="{{ kvm_cfg.iso.dir }}/{{ kvm_cfg.iso.name }}"
-#    register: test_rhel_iso
-#
-#  - name: "LIBVIRT-BASICS: fail if RHEL ISO absent"
-#    fail: msg="COPY YOUR RHEL ISO HERE {{ kvm_cfg.iso.dir }}/{{ kvm_cfg.iso.name }}"
-#    when: test_rhel_iso.stat.exists == false
-
   - debug:
       msg: "Ansible Facts: {{ ansible_distribution }} {{ ansible_distribution_major_version  }}"
 
@@ -97,7 +76,7 @@
       purge: True
       state: enabled
     when:
-      - ansible_distribution == "Red Hat"
+      - ansible_distribution == "RedHat"
       - ansible_distribution_major_version == "7"
 
   - name: "Subscription Manager enable RHEL 8 required repos only"
@@ -106,19 +85,19 @@
       purge: True
       state: enabled
     when:
-      - ansible_distribution == "Red Hat"
+      - ansible_distribution == "RedHat"
       - ansible_distribution_major_version == "8"
 
   - name: "LIBVIRT-BASICS: install RHEL8 unique packages"
     yum: name=policycoreutils-python-utils state=installed
     when:
-      - ansible_distribution == "Red Hat"
+      - ansible_distribution == "RedHat"
       - ansible_distribution_major_version == "8"
 
   - name: "LIBVIRT-BASICS: install RHEL7 unique packages"
     yum: name=policycoreutils-python state=installed
     when:
-      - ansible_distribution == "Red Hat"
+      - ansible_distribution == "RedHat"
       - ansible_distribution_major_version == "7"
 
   - name: "LIBVIRT-BASICS: install common general packages"
@@ -181,7 +160,7 @@
       - "http"
       - "https"
     when:
-      - ansible_distribution == "Red Hat"
+      - ansible_distribution == "RedHat"
       - ansible_distribution_major_version == "8"
 
   - name: "LIBVIRT-BASICS: add firewalld ports"
@@ -194,7 +173,7 @@
     with_items:
       - "{{ kvm_cfg.http_port }}/tcp"
     when:
-      - ansible_distribution == "Red Hat"
+      - ansible_distribution == "RedHat"
       - ansible_distribution_major_version == "8"
 
 # A reminder that if we use a port not natively included by selinux, we need to add it
@@ -203,11 +182,3 @@
 #  - shell:
 #      cmd: |
 #        semanage port -a -t http_port_t -p tcp {{ kvm_cfg.http_port }}
-
-#  - name: "LIBVIRT-BASICS: loopback mount ISO as repo"
-#    mount:
-#      src:    "{{ kvm_cfg.iso.dir }}/{{ kvm_cfg.iso.name }}"
-#      path:   "{{ kvm_cfg.iso.mount }}"
-#      opts:   "loop,ro"
-#      state:  "mounted"
-#      fstype: "iso9660"
