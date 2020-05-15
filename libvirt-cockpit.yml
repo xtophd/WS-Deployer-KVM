@@ -12,7 +12,7 @@
   tasks:
 
   - name: "LIBVIRT-COCKPIT: install cockpit packages"
-    yum: name=cockpit,cockpit-machines state=installed
+    yum: name=cockpit,cockpit-dashboard,cockpit-machines state=installed
 
   - name: "LIBVIRT-COCKPIT: create cockpit systemd drop-in directory"
     file:
