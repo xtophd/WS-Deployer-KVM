@@ -1,0 +1,23 @@
+## Authors: 
+##   Christoph Doerbeck
+##
+## Summary:
+##
+##   This loop iterates over the (sorted) kvm_deploy_plan.passes
+##   and then includes the task-deploy-plan.yml to run deployment
+##   plays on the defined hostgroup
+##
+##   A deploy_plan pass is aligned 1-to-1 with a ansible hostgroup
+##   All hosts in deploy_plan pass use an identical deployment strategy
+##
+
+---
+- hosts: myVirthost
+
+  tasks:
+
+  - name: "LIBVIRT-UNDEPLOY: Iterating over passes"
+    include_tasks: tasks-undeploy.yml
+    loop: "{{ kvm_deploy_plan['passes'] | flatten(1) | sort }}"
+    when: kvm_deploy_plan.passes[item]['hostgroup'] != ""
+

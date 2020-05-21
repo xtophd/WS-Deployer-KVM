@@ -1,0 +1,44 @@
+## Authors:
+##   Christoph Doerbeck
+##
+## Summary:
+##
+##
+##
+
+
+  - block:
+
+      - name: "DEBUG: iterate through hosts in host group"
+        debug:
+          msg: "{{ tdp_node_name }}"
+        loop: "{{ groups[tdp_hostgroup] }}"
+        loop_control:
+          loop_var: tdp_node_name
+
+      - name: "TASKS-UNDEPLOY: undefining virt domainsp"
+        vars:
+          p_vmname:     "{{ g_clusterName }}-{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
+        shell:
+          cmd: |
+            virsh destroy "{{ p_vmname }}"
+        loop: "{{ groups[tdp_hostgroup] }}"
+        loop_control:
+          loop_var: tdp_node_name
+        ignore_errors: yes
+
+      - name: "TASKS-UNDEPLOY: undefining virt domainsp"
+        vars:
+          p_vmname:     "{{ g_clusterName }}-{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
+        shell:
+          cmd: |
+            virsh undefine "{{ p_vmname }}" --remove-all-storage
+        loop: "{{ groups[tdp_hostgroup] }}"
+        loop_control:
+          loop_var: tdp_node_name
+        ignore_errors: yes
+
+    vars:
+      tdp_pass_name:         "{{ item }}"
+      tdp_hostgroup:         "{{ kvm_deploy_plan.passes[item]['hostgroup'] }}" 
+
