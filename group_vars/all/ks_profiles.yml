@@ -43,3 +43,12 @@ ks_profile:
         name:   "rhel-8-appstream-rpms"
         path:   "AppStream"
 
+  rhel7_lvm:
+
+    template:   "ks-rhel7-lvm.j2"
+    iso:        "rhel-server-7.8-x86_64-dvd.iso"
+    mnt:        "rhel-7.8"
+    repos:
+      repo1 :
+        name:   "rhel-7-server-rpms"
+        path:   ""

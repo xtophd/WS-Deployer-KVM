@@ -29,6 +29,25 @@ rs_profile:
         disk4: 
           size: 5 
 
+  sat6:
+    description: "Satellite 6 Workshop"
+    vcpus: 4
+    memsize: 16000
+    storage:
+      root:
+        size: 30
+      extra:
+        disk1:
+          size: 200
+
+  bastion:
+    description: "Resources for the bastion utility host"
+    vcpus:    4
+    memsize:  8000
+    storage:
+      root:
+        size: 30 
+
   sml:
     description: "Sufficient for minimal sized workers"
     vcpus: 2
@@ -53,10 +72,3 @@ rs_profile:
       root:
         size: 200 
 
-  bastion:
-    description: "Resources for the bastion utility host"
-    vcpus:    4
-    memsize:  8000
-    storage:
-      root:
-        size: 30 

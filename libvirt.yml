@@ -33,19 +33,21 @@
   tags:
   - cockpit
 
-- import_playbook: libvirt-network.yml
-  tags:
-  - network
-  - deploy
-
-- import_playbook: libvirt-dns.yml
-  tags:
-  - dns
-
 - import_playbook: libvirt-haproxy.yml
   tags:
   - haproxy
 
+- import_playbook: libvirt-network.yml
+  tags:
+  - network
+  - deploy
+  - redeploy
+
+- import_playbook: libvirt-dns.yml
+  tags:
+  - dns
+  - deploy
+  - redeploy
 
 - import_playbook: libvirt-undeploy.yml
   tags:
