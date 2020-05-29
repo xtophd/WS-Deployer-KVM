@@ -52,3 +52,13 @@ ks_profile:
       repo1 :
         name:   "rhel-7-server-rpms"
         path:   ""
+
+  rhel76_lvm:
+
+    template:   "ks-rhel7-lvm.j2"
+    iso:        "rhel-server-7.6-x86_64-dvd.iso"
+    mnt:        "rhel-7.6"
+    repos:
+      repo1 :
+        name:   "rhel-7-server-rpms"
+        path:   ""
