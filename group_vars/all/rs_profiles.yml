@@ -32,7 +32,7 @@ rs_profile:
   sat6:
     description: "Satellite 6 Workshop"
     vcpus: 4
-    memsize: 16000
+    memsize: 24000
     storage:
       root:
         size: 30
