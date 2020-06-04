@@ -16,20 +16,32 @@
 
   tasks:
 
+  ##
+  ## Combine DEFAULT with LOCAL profile configs into single dictionaries
+  ## 
+
+  - set_fact: rs_profile="{{ rs_profile | combine(local_rs_profile) }}"
+    when: local_rs_profile is defined
+
+  - set_fact: ks_profile="{{ ks_profile | combine(local_ks_profile) }}"
+    when: local_ks_profile is defined
+
+  - set_fact: hw_profile="{{ hw_profile | combine(local_hw_profile) }}"
+    when: local_hw_profile is defined
+
+  ##
+  ## Create QCOW directory if needed
+  ##
+
   - name: "LIBVIRT-DEPLOY: Create qcow directory"
     file:
       path: "{{ kvm_cfg.qcow_dir }}"
       mode: "0775"
       state: directory
 
-#  ## I NEED TO COME BACK AND MOUNT ALL NEEDED REPOS IN DIFFERENT PLACES PER KS_PROFILES
-#  - name: "LIBVIRT-REPOSYNC: loopback mount ISO"
-#    mount:
-#      src:    "{{ kvm_cfg.iso.dir }}/{{ kvm_cfg.iso.name }}"
-#      path:   "{{ kvm_cfg.iso.mount }}"
-#      opts:   "loop,ro"
-#      state:  "mounted"
-#      fstype: "iso9660"
+  ##
+  ## Pre-Deploy / Deploy / Post-Deploy
+  ##
 
   - name: "LIBVIRT-DEPLOY: pre-install'"
     shell: "cd .. ; {{ kvm_deploy_plan.pre_install }}"
