@@ -13,24 +13,28 @@
 ## Test for hardware compatability
 ##
 
-  - name: "LIBVIRT-NESTED-VIRT: does hardware support virt"
+  - name: "LIBVIRT-NESTED-VIRT: does hardware support AMD or INTEL virt"
     shell:
       cmd: |
-        grep -q -E 'svm|vmx' /proc/cpuinfo
-    ignore_errors: yes
+        if grep -q 'vmx' /proc/cpuinfo ; then
+          echo "intel"
+        elif grep -q 'svm' /proc/cpuinfo ; then
+          echo "amd"
+        else
+          exit 1
+        fi
+    register: test_virt
 
 ########################################
 ##
-## For now, only working with INTEL
-##
-## cat /sys/module/kvm_intel/parameters/nested
-##  OR
-## cat /sys/module/kvm_amd/parameters/nested
+## cat /sys/module/kvm_{intel|amd}/parameters/nested
+## 
 
   - name: "LIBVIRT-NESTED-VIRT: check if nested virt enabled"
+    when: test_virt.rc == 0
     shell:
-      cmd: |
-        grep -q 'Y' /sys/module/kvm_intel/parameters/nested
+      cmd: 
+        grep -q 'Y\|1' /sys/module/kvm_{{ test_virt.stdout }}/parameters/nested
     ignore_errors: yes
     register: test_nestedvirt
 
@@ -42,7 +46,7 @@
   - name: "LIBVIRT-NESTED-VIRT: deploy config template"
     when: test_nestedvirt.rc != 0
     template:
-      src:  nested-virt-intel.j2
+      src:  nested-virt-{{ test_virt.stdout }}.j2
       dest: /etc/modprobe.d/kvm-nested.conf
       mode: 0644
 
@@ -61,9 +65,9 @@
     when: test_nestedvirt.rc != 0
     shell:
       cmd: |
-        modprobe -r kvm_intel
+        modprobe -r kvm_{{ test_virt.stdout }}
         sleep 3
-        modprobe -a kvm_intel
+        modprobe -a kvm_{{ test_virt.stdout }}
 
   - name: "LIBVIRT-NESTED-VIRT: start libvirtd service"
     when: test_nestedvirt.rc != 0
