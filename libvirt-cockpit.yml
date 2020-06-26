@@ -36,6 +36,7 @@
     service: name="{{ item }}" state=restarted enabled=yes masked=no
     with_items:
       - "cockpit"
+      - "cockpit.socket"
 
   - name: "LIBVIRT-COCKPIT: add firewalld services"
     firewalld:
