@@ -133,7 +133,7 @@
       cmd: |
         virsh net-start {{ kvm_cfg.network.name }}
 
-  - name: "LIBVIRT-SETUP: auto-start libvirt network ({{ kvm_cfg.network.name }})"
+  - name: "LIBVIRT-NETWORK: auto-start libvirt network ({{ kvm_cfg.network.name }})"
     when: test_libvirt_network.rc != 0
     shell:
       cmd: |
