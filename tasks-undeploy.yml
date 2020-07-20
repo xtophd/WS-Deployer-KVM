@@ -32,7 +32,7 @@
           p_vmname:     "{{ g_clusterName }}-{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
         shell:
           cmd: |
-            virsh undefine "{{ p_vmname }}" --remove-all-storage
+            virsh undefine "{{ p_vmname }}" --remove-all-storage --nvram
         loop: "{{ groups[tdp_hostgroup] }}"
         loop_control:
           loop_var: tdp_node_name
