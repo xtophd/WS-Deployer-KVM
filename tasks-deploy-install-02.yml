@@ -76,5 +76,6 @@
       shell:
         cmd: |
           ssh-keyscan "{{ p_fqdn }}" >> /root/.ssh/known_hosts
+      when: tdp_wait_for_shutdown == True
       ignore_errors: yes
 
