@@ -16,7 +16,7 @@
         loop_control:
           loop_var: tdp_node_name
 
-      - name: "TASKS-UNDEPLOY: shutting down (destory) virt domains"
+      - name: "TASKS-UNDEPLOY: shutting down (destroy) virt domains"
         vars:
           p_vmname:     "{{ g_clusterName }}-{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
         shell:

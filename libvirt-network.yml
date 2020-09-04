@@ -93,12 +93,12 @@
     shell:
       cmd: |
         nmcli con add type bridge \
-              con-name "{{ kvm_cfg.network.bridge }}" \
-              ifname   "{{ kvm_cfg.network.bridge }}" \
-              ip4      "{{ kvm_cfg.network.ipv4.addr }}" \
-              gw4      "{{ kvm_cfg.network.ipv4.gw }}" \
-              ipv4.dns "{{ g_pubDNS }}" \
-              autoconnect yes bridge.stp no ipv6.method ignore
+        con-name "{{ kvm_cfg.network.bridge }}" \
+        ifname   "{{ kvm_cfg.network.bridge }}" \
+        ip4      "{{ kvm_cfg.network.ipv4.addr }}" \
+        gw4      "{{ kvm_cfg.network.ipv4.gw }}" \
+        ipv4.dns "{{ g_pubDNS }}" \
+        autoconnect yes bridge.stp no ipv6.method ignore
 
   - name: "LIBVIRT-NETWORK: add device to bridge ({{ kvm_cfg.network.name }})"
     when: 
@@ -117,9 +117,9 @@
       - test_bridge_network.rc != 0
     shell: 
       cmd: |
-        ifdown {{ kvm_cfg.network.dev }}
-        ifdown {{ kvm_cfg.network.bridge }}
-        ifup   {{ kvm_cfg.network.bridge }}
+        ifdown "{{ kvm_cfg.network.dev }}"
+        ifdown "{{ kvm_cfg.network.bridge }}"
+        ifup   "{{ kvm_cfg.network.bridge }}"
 
   - name: "LIBVIRT-NETWORK: create libvirt network ({{ kvm_cfg.network.name }})"
     when: test_libvirt_network.rc != 0
