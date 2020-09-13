@@ -24,6 +24,10 @@
   tags:
   - basics
 
+- import_playbook: common-basics.yml
+  tags:
+  - basics
+
 - import_playbook: libvirt-nested-virt.yml
   when: kvm_cfg.enable_nested_virt == true
   tags:
