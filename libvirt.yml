@@ -37,6 +37,12 @@
   tags:
   - haproxy
 
+- import_playbook: libvirt-undeploy.yml
+  tags:
+  - never
+  - undeploy
+  - redeploy
+
 - import_playbook: libvirt-network.yml
   tags:
   - network
@@ -47,12 +53,6 @@
   tags:
   - dns
   - deploy
-  - redeploy
-
-- import_playbook: libvirt-undeploy.yml
-  tags:
-  - never
-  - undeploy
   - redeploy
 
 - import_playbook: libvirt-deploy.yml
