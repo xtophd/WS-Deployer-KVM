@@ -28,9 +28,10 @@
   tags:
   - cockpit
 
-- import_playbook: libvirt-haproxy.yml
-  tags:
-  - haproxy
+## Deprecating these tasks.  Use cockpit dashboard to provide outside user connectivity
+#- import_playbook: libvirt-haproxy.yml
+#  tags:
+#  - haproxy
 
 - import_playbook: libvirt-undeploy.yml
   tags:

@@ -9,6 +9,18 @@
 ##   Enables firewall services and ports
 ##
 
+##
+##
+## NOTE: haproxy is no longer part of the standard setup on the libvirt-host to
+##       connect outside users to the bastion's cockpit.
+##       a user can connect nodes in the cluster using cockpit dashboard on libvirt host
+##
+##       These plays will be deplricated and removed soon
+##
+##       They are already ignored in libvirt.yml
+##
+
+
 ---
 - hosts: myVirthost
   tasks:
