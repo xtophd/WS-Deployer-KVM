@@ -79,7 +79,7 @@
             src:  virtinstall-base.j2
             dest: "{{ fragment_dir }}/10-base"
 
-        - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): adding ISO location"
+        - name: "TASKS-DEPLOY-INSTALL-01 ({{ tdp_node_name }}): adding kernel_args with network and ISO location"
           template:
             src: virtinstall-location.j2
             dest: "{{ fragment_dir }}/20-location"

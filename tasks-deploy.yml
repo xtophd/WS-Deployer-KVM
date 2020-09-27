@@ -43,10 +43,10 @@
 
     vars:
       tdp_pass_name:         "{{ item }}"
-      tdp_hostgroup:         "{{ kvm_deploy_plan.passes[item]['hostgroup'] }}" 
-      tdp_pre_install:       "{{ kvm_deploy_plan.passes[item]['pre_install'] }}" 
-      tdp_post_config:       "{{ kvm_deploy_plan.passes[item]['post_config'] }}" 
-      tdp_post_install:      "{{ kvm_deploy_plan.passes[item]['post_install'] }}" 
-      tdp_wait_for_shutdown: "{{ kvm_deploy_plan.passes[item]['wait_for_shutdown'] }}" 
-      tdp_inject_sshkey:     "{{ kvm_deploy_plan.passes[item]['inject_sshkey'] }}" 
+      tdp_hostgroup:         "{{ deployer_plan.passes[item]['hostgroup'] }}" 
+      tdp_pre_install:       "{{ deployer_plan.passes[item]['pre_install'] }}" 
+      tdp_post_config:       "{{ deployer_plan.passes[item]['post_config'] }}" 
+      tdp_post_install:      "{{ deployer_plan.passes[item]['post_install'] }}" 
+      tdp_wait_for_shutdown: "{{ deployer_plan.passes[item]['wait_for_shutdown'] }}" 
+      tdp_inject_sshkey:     "{{ deployer_plan.passes[item]['inject_sshkey'] }}" 
 

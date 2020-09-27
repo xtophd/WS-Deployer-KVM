@@ -1,7 +1,7 @@
 ##
 ## Kickstart 
-##   RHEL 8.1 
-##   VM using virtio (vda)
+##   RHEL 8 
+##   VM using disk {{ p_diskDevice }}
 ##
 
 lang en_US
@@ -12,6 +12,11 @@ reboot
 text
 cdrom
 bootloader --location=mbr --append="nofb quiet splash=quiet"
+
+{%if p_ssh_key is defined and p_ssh_key|length %}
+## Authorized SSH Key
+sshkey --username=root "{{ p_ssh_key }}"
+{% endif %}
 
 ## *** WARNING ***
 ## *** WARNING ***
@@ -50,4 +55,25 @@ dhclient
 bind-utils
 wget
 git
+cloud-init
 %end
+
+########################################
+##
+## Post Install
+##
+
+%post
+
+##-- Randomize root password
+head -n1 /dev/urandom | md5sum | awk {'print $1'} | passwd --stdin root
+
+%end
+
+########################################
+##
+## How to end installation (shutdown, reboot, halt)
+##
+
+shutdown
+

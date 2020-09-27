@@ -8,6 +8,7 @@ hw_profile:
 
   kvm_vda:
     description: "KVM based virtual machine using disk.bus = virtio"
+    platform: "libvirt"
     disk:
       bus:    "virtio"
       sparse: "true"
@@ -17,6 +18,7 @@ hw_profile:
 
   kvm_nest_vda:
     description: "KVM based virtual machine with nested-virt and disk.bus = virtio"
+    platform: "libvirt"
     cpu:
       type:   "host-passthrough"
     disk:
@@ -28,12 +30,35 @@ hw_profile:
 
   kvm_sda:
     description: "KVM based virtual machine using disk.bus = virtio-scsi"
+    platform: "libvirt"
     disk:
       bus:    "virtio-scsi"
       sparse: "true"
       dev:    "sda"
     network:
       model:  "virtio"
+
+  ovirt_sda:
+    description: "oVirt based virtual machine using disk.bus = virtio-scsi (sda)"
+    platform: "ovirt"
+    disk:
+      bus:    "virtio_scsi"
+      sparse: "true"
+      dev:    "sda"
+    network:
+      model:  "virtio"
+      profile: "ovirtmgmt"
+
+  ovirt_vda:
+    description: "oVirt based virtual machine using disk.bus = virtio (vda)"
+    platform: "ovirt"
+    disk:
+      bus:    "virtio"
+      sparse: "true"
+      dev:    "vda"
+    network:
+      model:  "virtio"
+      profile: "ovirtmgmt"
 
   vmware_sda:
     description: "VMWare based virtual machine using disk.bus = TBD"
@@ -47,5 +72,6 @@ hw_profile:
 
   hp_dl380:
     description: "HP DL380"
+    usb_delay: "10"
     disk:
-      dev:    "c0t0d0"
+      dev:    "sda"
