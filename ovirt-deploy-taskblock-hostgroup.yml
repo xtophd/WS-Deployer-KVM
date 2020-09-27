@@ -1,0 +1,49 @@
+## Authors:
+##   Christoph Doerbeck
+##
+## Summary:
+##
+##
+##
+
+
+  - block:
+
+      ## Pre install is once per hostgroup (not individual hosts)
+      - name: "OVIRT-DEPLOY-TASKBLOCK-HOSTGROUP: PRE-INSTALL ({{ tdp_pass_name }},{{ tdp_hostgroup }}) : '{{ tdp_pre_install }}'"
+        shell: "cd .. ; {{ tdp_pre_install }}"
+        when: tdp_pre_install != ""
+
+      ## Part1 sets up and starts the builds for a hostgroup
+      - name: "OVIRT-DEPLOY-TASKBLOCK-HOSTGROUP: DEPLOY NODES PART 1 ({{ tdp_pass_name }},{{ tdp_hostgroup }})"
+        include_tasks: ovirt-deploy-taskblock-node-part1.yml
+        loop: "{{ groups[tdp_hostgroup] }}"
+        loop_control:
+          loop_var: tdp_node_name
+
+      ## Part2 waits until builds finish, restarts nodes
+      - name: "OVIRT-DEPLOY-TASKBLOCK-HOSTGROUP: DEPLOY NODES PART 2 ({{ tdp_pass_name }},{{ tdp_hostgroup }})"
+        include_tasks: ovirt-deploy-taskblock-node-part2.yml
+        loop: "{{ groups[tdp_hostgroup] }}"
+        loop_control:
+          loop_var: tdp_node_name
+
+      ## Post config is executed for every node in the hostgroup
+      - name: "OVIRT-DEPLOY-TASKBLOCK-HOSTGROUP: POST-CONFIG ({{ tdp_pass_name }},{{ tdp_hostgroup }})"
+        shell: "ansible-playbook -l {{ tdp_hostgroup }} -i ../config/master-config.yml  -e @../config/ovirt-config.yml ovirt-deploy-postconfig.yml"
+        when: tdp_post_config == True
+
+      ## Post install is once per hostgroup (not individual hosts)
+      - name: "OVIRT-DEPLOY-TASKBLOCK-HOSTGROUP: POST-INSTALL ({{ tdp_pass_name }},{{ tdp_hostgroup }})"
+        shell: "cd .. ; {{ tdp_post_install }}"
+        when: tdp_post_install != ""
+
+    vars:
+      tdp_pass_name:         "{{ item }}"
+      tdp_hostgroup:         "{{ deployer_plan.passes[item]['hostgroup'] }}" 
+      tdp_pre_install:       "{{ deployer_plan.passes[item]['pre_install'] }}" 
+      tdp_post_config:       "{{ deployer_plan.passes[item]['post_config'] }}" 
+      tdp_post_install:      "{{ deployer_plan.passes[item]['post_install'] }}" 
+      tdp_wait_for_shutdown: "{{ deployer_plan.passes[item]['wait_for_shutdown'] }}" 
+      tdp_inject_sshkey:     "{{ deployer_plan.passes[item]['inject_sshkey'] }}" 
+

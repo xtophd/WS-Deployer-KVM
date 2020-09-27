@@ -1,0 +1,296 @@
+##   Christoph Doerbeck
+##
+## Summary:
+##
+## I am using blocks to:
+##
+##   localize variables to related tasks
+##   define variables once and in one place
+##
+
+    ##
+    ## When an kickstart profile is defined, deploy ks.cfg and mount iso for repo access
+    ##
+
+    - block:
+
+        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART1: ({{ tdp_node_name }}) create kickstart dir '{{ b_ks_dir }}'"
+          file: path="{{ b_ks_dir }}" mode="0755" state=directory
+
+        ##
+        ## For consistancy we put the ks.cfg in a http directory, but for ovirt deployments we will
+        ## cook the kc.cfg directory into the ISO
+        ##
+
+        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART1: ({{ tdp_node_name }}) deploying kickstart '{{ b_ks_cfg }}'"
+          vars:
+            p_ssh_key:    "{{ lookup('file','/root/.ssh/id_rsa.pub') }}"
+            p_diskDevice: "{{ hw_profile[b_hw_profile].disk.dev }}"
+          template:
+            src:  "{{ b_ks_template }}"
+            dest: "{{ b_ks_dir }}/{{ b_ks_cfg }}"
+            owner: root
+            group: apache
+            mode: 0644
+
+        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART1: ({{ tdp_node_name }}) stat repo mount point '{{ b_repo_dir }}/{{ b_repo_subdir }}'"
+          stat: path="{{ b_repo_dir }}/{{ b_repo_subdir }}"
+          register: test_repo_mount
+          when: b_iso_name != ""
+
+        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART1: ({{ tdp_node_name }}) create repo mount point '{{ b_repo_dir }}/{{ b_repo_subdir }}'"
+          file: path="{{ b_repo_dir }}/{{ b_repo_subdir }}" mode="0755" state=directory
+          when: 
+            - test_repo_mount.stat.exists == false
+
+        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART1: ({{ tdp_node_name }}) mount repo '{{ b_repo_dir }}/{{ b_repo_subdir }}' on '{{ b_repo_dir }}/{{ b_repo_subdir }}'"
+          vars:
+          mount:
+            path:   "{{ b_repo_dir }}/{{ b_repo_subdir }}"
+            src:    "{{ b_iso_dir }}/{{ b_iso_name }}"
+            opts:   "loop,ro"
+            state:  "mounted"
+            fstype: "iso9660"
+          when: b_iso_name != ""
+
+        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART1: ({{ tdp_node_name }}) package installation"
+          yum: name=genisoimage state=installed
+          when: b_iso_name != ""
+
+        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART1: ({{ tdp_node_name }}) clean-up iso work-directory /var/tmp/{{ g_clusterName }}/iso"
+          shell:
+            cmd: |
+              if [[ -d "/var/tmp/{{ g_clusterName }}/iso" ]] ; then rm -rf /var/tmp/{{ g_clusterName }}/iso ; fi
+
+        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART1: ({{ tdp_node_name }}) create fresh iso work-directory"
+          file:
+            path="/var/tmp/{{ g_clusterName }}/iso/{{ tdp_node_name }}"
+            mode="0755"
+            state=directory
+
+        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART1: ({{ tdp_node_name }}) clone source to iso work-directory"
+          shell:
+            cmd: |
+              tar cf - -C {{ b_repo_dir }}/{{ b_repo_subdir }} . | tar xpf - -C /var/tmp/{{ g_clusterName }}/iso/{{ tdp_node_name }}
+
+        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART1: ({{ tdp_node_name }}) deploy ks to iso work directory'{{ b_ks_cfg }}'"
+          vars:
+            p_diskDevice: "{{ hw_profile[b_hw_profile].disk.dev }}"
+            p_ssh_key:    "{{ lookup('file','/root/.ssh/id_rsa.pub') }}"
+          template:
+            src:  "{{ b_ks_template }}"
+            dest: "/var/tmp/{{ g_clusterName }}/iso/{{ tdp_node_name }}/ks.cfg"
+            owner: root
+            group: root
+            mode: 0444
+
+        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART1: ({{ tdp_node_name }}) isolinux.cfg: remove default menu option"
+          lineinfile:
+            dest: /var/tmp/{{ g_clusterName }}/iso/{{ tdp_node_name }}/isolinux/isolinux.cfg
+            regexp: "^.*menu default.*$"
+            state:  absent
+
+        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART1: ({{ tdp_node_name }}) isolinux.cfg: set default menu option"
+          lineinfile:
+            dest: /var/tmp/{{ g_clusterName }}/iso/{{ tdp_node_name }}/isolinux/isolinux.cfg
+            insertafter: "^.*label linux.*$"
+            line: "  menu default"
+            state: present
+
+        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART1: ({{ tdp_node_name }}) isolinux.cfg: add kickstart and network info"
+          replace:
+            path: /var/tmp/{{ g_clusterName }}/iso/{{ tdp_node_name }}/isolinux/isolinux.cfg
+            regexp: '(\s+)append(\s+.*)?$'
+            replace: '\1append\2 inst.ks=cdrom:/ks.cfg ip={{ b_ip }} netmask={{ b_nm }} nameserver={{ b_dns }} gateway={{ b_gw }}'
+
+        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART1: ({{ tdp_node_name }}) isolinux.cfg: change default timeout to 10 seconds"
+          replace:
+            path: /var/tmp/{{ g_clusterName }}/iso/{{ tdp_node_name }}/isolinux/isolinux.cfg
+            regexp: '^timeout(\s+.*)?$'
+            replace: 'timeout 100'
+
+        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART1: ({{ tdp_node_name }}) generate custom iso image"
+          shell:
+            cmd: |
+              cd /var/tmp/{{ g_clusterName }}/iso/{{ tdp_node_name }}
+              genisoimage -U -r -v -T -J -joliet-long        \
+                          -V      "{{ b_iso_label }}"        \
+                          -volset "{{ b_iso_label }}"        \
+                          -A      "{{ b_iso_label }}"        \
+                          -b      isolinux/isolinux.bin      \
+                          -c      isolinux/boot.cat          \
+                          -no-emul-boot                      \
+                          -boot-load-size 4                  \
+                          -boot-info-table                   \
+                          -eltorito-alt-boot                 \
+                          -e images/efiboot.img              \
+                          -no-emul-boot                      \
+                          -o ../{{ tdp_node_name }}.iso .
+
+
+#  Saw this command in another example.  Don't know what it REALLY does so I'll come back to it.
+#        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART1: ({{ tdp_node_name }}) enable hybrid uefi iso"
+#          shell:
+#            cmd: |
+#              isohybrid --uefi /var/tmp/{{ g_clusterName }}/iso/{{ tdp_node_name }}.iso
+
+        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART1: ({{ tdp_node_name }}) upload iso image '{{ b_iso_name }}'"
+          ovirt_disk:
+            auth: '{{ ovirt_auth }}'
+            name: '{{ g_clusterName }}-{{ tdp_node_name }}.iso'
+            description: '{{ b_iso_name }}'
+            upload_image_path: '/var/tmp/{{ g_clusterName }}/iso/{{ tdp_node_name }}.iso'
+            bootable: true
+            content_type: iso
+            format: raw
+            storage_domain: '{{ b_ovirt_data }}'
+          register: ovirt_boot_iso
+        
+      vars:
+        b_ovirt_cluster: "{{ ovirt_cfg.cluster_name }}"
+        b_ovirt_data:    "{{ ovirt_cfg.storage_domain }}"
+        b_ovirt_network: "{{ ovirt_cfg.network_name }}"
+        b_hw_profile:    "{{ hostvars[tdp_node_name]['h_hwPROF'] | default ('') }}"
+        b_ks_profile:    "{{ hostvars[tdp_node_name]['h_ksPROF'] | default ('') }}"
+        b_ks_dir:        "{{ deployer_cfg.kickstart.dir }}"
+        b_ks_template:   "{{ ks_profile[b_ks_profile].template }}"
+        b_ks_cfg:        "{{ g_clusterName }}-{{ tdp_node_name }}.cfg"
+        b_ip:            "{{ hostvars[tdp_node_name]['h_pubIP'] }}"
+        b_nm:            "{{ hostvars[tdp_node_name]['g_pubNM'] }}"
+        b_gw:            "{{ hostvars[tdp_node_name]['g_pubGW'] }}"
+        b_dns:           "{{ hostvars[tdp_node_name]['g_pubDNS'] }}"
+        b_repo_dir:      "{{ deployer_cfg.repo.dir | default ('') }}"
+        b_repo_subdir:   "{{ ks_profile[hostvars[tdp_node_name]['h_ksPROF']].mnt | default ('') }}"
+        b_name:          "{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
+        b_vmname:        "{{ g_clusterName }}-{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
+        b_iso_dir:       "{{ deployer_cfg.iso.dir | default ('') }}"
+        b_iso_name:      "{{ b_vmname }}.iso"
+        b_iso_label:     "{{ ks_profile[b_ks_profile].iso_label | default ('') }}"
+
+      when: 
+        - hostvars[tdp_node_name]['h_ksPROF'] != ""
+
+
+
+
+    ##
+    ## Now get on with VM setup and installation
+    ##
+
+    - block:
+
+        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART1: ({{ tdp_node_name }}) vm create with cpu, mem and nics"
+          ovirt_vm:
+            auth:      "{{ ovirt_auth }}"
+            name:      "{{ p_ovirt_vmname }}"
+            cluster:   "{{ p_ovirt_cluster }}"
+            memory:    "{{ p_memsize }} MiB"
+            cpu_cores: "{{ p_vcpu }}"
+            nics:
+              - name: "nic1"
+                interface: "{{ p_netdev }}"
+                profile_name: "{{ p_ovirt_network }}"
+                mac_address: "{{ p_mac }}"
+            graphical_console:
+               protocol:
+                 - spice
+            operating_system: "rhel_8x64"
+            high_availability: false
+            type: server
+            state: stopped
+            wait: yes
+
+        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART1: ({{ tdp_node_name }}) vm configure boot-disk"
+          ovirt_disk:
+            auth: '{{ ovirt_auth }}'
+            name: '{{ p_ovirt_vmname }}_Disk1'
+            vm_name: '{{ p_ovirt_vmname }}'
+            storage_domain: '{{ p_ovirt_storage }}'
+            interface: '{{ p_bus }}'
+            size: '{{ p_disksize }} GiB'
+            bootable: yes
+            format: cow
+            wipe_after_delete: yes
+            wait: yes
+
+#        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART1: ({{ tdp_node_name }}) vm configure extra disks"
+#          vars:
+#            p_disksize: "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']]['storage']['extra'][p_diskname].size }}"
+#          ovirt_disk:
+#            auth: '{{ ovirt_auth }}'
+#            name: '{{ p_vmname }}_Disk1'
+#            vm_name: '{{ p_vmname }}'
+#            storage_domain: '{{ p_ovirt_storage }}'
+#            interface: '{{ p_bus }}'
+#            size: '{{ p_disksize }} GiB'
+#            bootable: yes
+#            content_type: data
+#            format: cow
+#            wait: yes
+#          loop: "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']].storage.extra | flatten(1) }}"
+#          loop_control:
+#            loop_var: p_diskname
+#          when: rs_profile[hostvars[tdp_node_name]['h_rsPROF']].storage.extra is defined
+
+        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART1: ({{ tdp_node_name }}) vm attach ISO and change boot device to cdrom"
+          ovirt_vm:
+            auth: "{{ ovirt_auth }}"
+            name: "{{ p_ovirt_vmname }}"
+            cluster: "{{ p_ovirt_cluster }}"
+            cd_iso: "{{ g_clusterName }}-{{ tdp_node_name }}.iso"
+            boot_devices:
+              - hd
+              - cdrom
+          when: 
+            - hostvars[tdp_node_name]['h_ksPROF'] != ""
+
+        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART1: ({{ tdp_node_name }}) vm change boot device to network"
+          ovirt_vm:
+            auth: "{{ ovirt_auth }}"
+            name: "{{ p_ovirt_vmname }}"
+            cluster: "{{ p_ovirt_cluster }}"
+            boot_devices:
+              - hd
+              - network
+          when: 
+            - hostvars[tdp_node_name]['h_ksPROF'] == ""
+
+        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART1: ({{ tdp_node_name }}) vm change state to RUNNING (START INSTALL)"
+          ovirt_vm:
+            auth: "{{ ovirt_auth }}"
+            name: "{{ p_ovirt_vmname }}"
+            cluster: "{{ p_ovirt_cluster }}"
+            state: running
+            wait: no
+
+      vars:
+
+        scripts_dir:  "/var/tmp/{{ g_clusterName }}"
+        fragment_dir: "/var/tmp/{{ g_clusterName }}/{{ tdp_node_name }}-fragments"
+
+        p_name:          "{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
+        p_ovirt_vmname:  "{{ g_clusterName }}-{{ p_name }}"
+        p_ovirt_cluster: "{{ ovirt_cfg.cluster_name }}"
+        p_ovirt_network: "{{ ovirt_cfg.network_name }}"
+        p_ovirt_storage: "{{ ovirt_cfg.storage_domain }}"
+
+        p_ks_profile:    "{{ hostvars[tdp_node_name]['h_ksPROF'] | default ('') }}"
+        p_iso_name:      "{{ ks_profile[p_ks_profile].iso | default ('') }}"
+        p_iso_dir:       "{{ deployer_cfg.iso.dir | default ('') }}"
+        p_location:      "{{ p_iso_dir }}/{{ p_iso_name }}"
+        p_ksurl:         "{{ deployer_cfg.kickstart.url}}/{{ g_clusterName }}-{{ tdp_node_name }}.cfg"
+        p_mac:           "{{ hostvars[tdp_node_name]['h_pubMAC'] }}"
+        p_ip:            "{{ hostvars[tdp_node_name]['h_pubIP'] }}"
+        p_nm:            "{{ hostvars[tdp_node_name]['g_pubNM'] }}"
+        p_gw:            "{{ hostvars[tdp_node_name]['g_pubGW'] }}"
+        p_dns:           "{{ hostvars[tdp_node_name]['g_pubDNS'] }}"
+        p_bus:           "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].disk.bus }}"
+        p_sparse:        "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].disk.sparse }}"
+        p_netdev:     "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].network.model }}"
+        p_memsize:    "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']].memsize }}"
+        p_disksize:   "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']].storage.root.size }}"
+        p_vcpu:       "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']].vcpus }}"
+        p_cpu:        "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].cpu.type | default ('host-model') }}"
+        p_kernelargs: "ks={{ p_ksurl }} ip={{ p_ip }} netmask={{ p_nm }} dns={{ p_dns }} gateway={{ p_gw }}"
+
+

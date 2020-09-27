@@ -1,0 +1,46 @@
+## Authors: 
+##   Christoph Doerbeck
+##
+## Summary:
+##
+## Thanks to: 
+##
+##   Jacek Skorzynski for an excellent getting started blog.
+##     https://www.openvirtualization.pro/rhv-ovirt-ansible-getting-started/
+##
+##   Mike Flannery
+##     https://linux-nerd.tech/making-25-vms-with-a-single-ansible-playbook/
+
+
+---
+- hosts: myDeployer
+  tasks:
+
+- import_playbook: ovirt-rhsm.yml
+  tags:
+  - never
+  - rhsm
+
+- import_playbook: deployer-basics.yml
+  tags:
+  - basics
+
+- import_playbook: deployer-cockpit.yml
+  tags:
+  - cockpit
+
+- import_playbook: ovirt-basics.yml
+  tags:
+  - basics
+
+- import_playbook: ovirt-undeploy.yml
+  tags:
+  - never
+  - undeploy
+  - redeploy
+
+- import_playbook: ovirt-deploy.yml
+  tags:
+  - deploy
+  - redeploy
+
