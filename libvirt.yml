@@ -20,11 +20,15 @@
 - hosts: myVirthost
   tasks:
 
-- import_playbook: setup-libvirt.yml
+- import_playbook: deployer-basics.yml
   tags:
   - basics
 
-- import_playbook: setup-deployer.yml
+- import_playbook: deployer-cockpit.yml
+  tags:
+  - cockpit
+
+- import_playbook: libvirt-basics.yml
   tags:
   - basics
 
