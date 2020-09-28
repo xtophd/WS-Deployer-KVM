@@ -176,7 +176,7 @@
 
     - block:
 
-        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART1: ({{ tdb_node_name }}) vm create with cpu, mem and nics"
+        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART1: ({{ tdp_node_name }}) vm create with cpu, mem and nics"
           ovirt_vm:
             auth:      "{{ ovirt_auth }}"
             name:      "{{ b_ovirt_vmname }}"
@@ -197,7 +197,7 @@
             state: stopped
             wait: yes
 
-        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART1: ({{ tdb_node_name }}) vm configure boot-disk"
+        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART1: ({{ tdp_node_name }}) vm configure boot-disk"
           ovirt_disk:
             auth: '{{ ovirt_auth }}'
             name: '{{ b_ovirt_vmname }}_Disk1'
@@ -210,9 +210,9 @@
             wipe_after_delete: yes
             wait: yes
 
-#        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART1: ({{ tdb_node_name }}) vm configure extra disks"
+#        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART1: ({{ tdp_node_name }}) vm configure extra disks"
 #          vars:
-#            b_disksize: "{{ rs_profile[hostvars[tdb_node_name]['h_rsPROF']]['storage']['extra'][b_diskname].size }}"
+#            b_disksize: "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']]['storage']['extra'][b_diskname].size }}"
 #          ovirt_disk:
 #            auth: '{{ ovirt_auth }}'
 #            name: '{{ b_vmname }}_Disk1'
@@ -224,24 +224,24 @@
 #            content_type: data
 #            format: cow
 #            wait: yes
-#          loop: "{{ rs_profile[hostvars[tdb_node_name]['h_rsPROF']].storage.extra | flatten(1) }}"
+#          loop: "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']].storage.extra | flatten(1) }}"
 #          loob_control:
 #            loob_var: b_diskname
-#          when: rs_profile[hostvars[tdb_node_name]['h_rsPROF']].storage.extra is defined
+#          when: rs_profile[hostvars[tdp_node_name]['h_rsPROF']].storage.extra is defined
 
-        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART1: ({{ tdb_node_name }}) vm attach ISO and change boot device to cdrom"
+        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART1: ({{ tdp_node_name }}) vm attach ISO and change boot device to cdrom"
           ovirt_vm:
             auth: "{{ ovirt_auth }}"
             name: "{{ b_ovirt_vmname }}"
             cluster: "{{ b_ovirt_cluster }}"
-            cd_iso: "{{ g_clusterName }}-{{ tdb_node_name }}.iso"
+            cd_iso: "{{ g_clusterName }}-{{ tdp_node_name }}.iso"
             boot_devices:
               - hd
               - cdrom
           when: 
-            - hostvars[tdb_node_name]['h_ksPROF'] != ""
+            - hostvars[tdp_node_name]['h_ksPROF'] != ""
 
-        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART1: ({{ tdb_node_name }}) vm change boot device to network"
+        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART1: ({{ tdp_node_name }}) vm change boot device to network"
           ovirt_vm:
             auth: "{{ ovirt_auth }}"
             name: "{{ b_ovirt_vmname }}"
@@ -250,9 +250,9 @@
               - hd
               - network
           when: 
-            - hostvars[tdb_node_name]['h_ksPROF'] == ""
+            - hostvars[tdp_node_name]['h_ksPROF'] == ""
 
-        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART1: ({{ tdb_node_name }}) vm change state to RUNNING (START INSTALL)"
+        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART1: ({{ tdp_node_name }}) vm change state to RUNNING (START INSTALL)"
           ovirt_vm:
             auth: "{{ ovirt_auth }}"
             name: "{{ b_ovirt_vmname }}"
@@ -263,31 +263,31 @@
       vars:
 
         scripts_dir:  "/var/tmp/{{ g_clusterName }}"
-        fragment_dir: "/var/tmp/{{ g_clusterName }}/{{ tdb_node_name }}-fragments"
+        fragment_dir: "/var/tmp/{{ g_clusterName }}/{{ tdp_node_name }}-fragments"
 
-        b_name:          "{{ hostvars[tdb_node_name]['inventory_hostname_short'] }}"
+        b_name:          "{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
         b_ovirt_vmname:  "{{ g_clusterName }}-{{ b_name }}"
         b_ovirt_cluster: "{{ ovirt_cfg.cluster_name }}"
         b_ovirt_network: "{{ ovirt_cfg.network_name }}"
         b_ovirt_storage: "{{ ovirt_cfg.storage_domain }}"
 
-        b_ks_profile:    "{{ hostvars[tdb_node_name]['h_ksPROF'] | default ('') }}"
+        b_ks_profile:    "{{ hostvars[tdp_node_name]['h_ksPROF'] | default ('') }}"
         b_iso_name:      "{{ ks_profile[b_ks_profile].iso | default ('') }}"
         b_iso_dir:       "{{ deployer_cfg.iso.dir | default ('') }}"
         b_location:      "{{ b_iso_dir }}/{{ b_iso_name }}"
-        b_ksurl:         "{{ deployer_cfg.kickstart.url}}/{{ g_clusterName }}-{{ tdb_node_name }}.cfg"
-        b_mac:           "{{ hostvars[tdb_node_name]['h_pubMAC'] }}"
-        b_ip:            "{{ hostvars[tdb_node_name]['h_pubIP'] }}"
-        b_nm:            "{{ hostvars[tdb_node_name]['g_pubNM'] }}"
-        b_gw:            "{{ hostvars[tdb_node_name]['g_pubGW'] }}"
-        b_dns:           "{{ hostvars[tdb_node_name]['g_pubDNS'] }}"
-        b_bus:           "{{ hw_profile[hostvars[tdb_node_name]['h_hwPROF']].disk.bus }}"
-        b_sparse:        "{{ hw_profile[hostvars[tdb_node_name]['h_hwPROF']].disk.sparse }}"
-        b_netdev:        "{{ hw_profile[hostvars[tdb_node_name]['h_hwPROF']].network.model }}"
-        b_memsize:       "{{ rs_profile[hostvars[tdb_node_name]['h_rsPROF']].memsize }}"
-        b_disksize:      "{{ rs_profile[hostvars[tdb_node_name]['h_rsPROF']].storage.root.size }}"
-        b_vcpu:          "{{ rs_profile[hostvars[tdb_node_name]['h_rsPROF']].vcpus }}"
-        b_cpu:           "{{ hw_profile[hostvars[tdb_node_name]['h_hwPROF']].cpu.type | default ('host-model') }}"
+        b_ksurl:         "{{ deployer_cfg.kickstart.url}}/{{ g_clusterName }}-{{ tdp_node_name }}.cfg"
+        b_mac:           "{{ hostvars[tdp_node_name]['h_pubMAC'] }}"
+        b_ip:            "{{ hostvars[tdp_node_name]['h_pubIP'] }}"
+        b_nm:            "{{ hostvars[tdp_node_name]['g_pubNM'] }}"
+        b_gw:            "{{ hostvars[tdp_node_name]['g_pubGW'] }}"
+        b_dns:           "{{ hostvars[tdp_node_name]['g_pubDNS'] }}"
+        b_bus:           "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].disk.bus }}"
+        b_sparse:        "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].disk.sparse }}"
+        b_netdev:        "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].network.model }}"
+        b_memsize:       "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']].memsize }}"
+        b_disksize:      "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']].storage.root.size }}"
+        b_vcpu:          "{{ rs_profile[hostvars[tdp_node_name]['h_rsPROF']].vcpus }}"
+        b_cpu:           "{{ hw_profile[hostvars[tdp_node_name]['h_hwPROF']].cpu.type | default ('host-model') }}"
         b_kernelargs:    "ks={{ b_ksurl }} ip={{ b_ip }} netmask={{ b_nm }} dns={{ b_dns }} gateway={{ b_gw }}"
 
 
