@@ -1,0 +1,26 @@
+
+##
+## SUMMARY:
+##
+##   Perform configuration of node at completion of build/kickstart
+##   This is called by 'tasks-deploy-pass.yml' via a SHELL with specified hostgroup
+##
+
+---
+- hosts: all
+  tasks:
+
+  - name: "LIBVIRT-DEPLOY-POSTCONFIG: Add repository"
+    vars:
+      p_ksprofile: "{{ hostvars[ansible_hostname]['h_ksPROF'] }}"
+      p_name:      "{{ ks_profile[p_ksprofile]['repos'][item]['name'] }}"
+      p_path:      "{{ ks_profile[p_ksprofile]['repos'][item]['path'] }}"
+      p_mnt:       "{{ ks_profile[p_ksprofile]['mnt'] }}"
+    yum_repository:
+      name:        "{{ p_name }}"
+      description: "{{ p_name }}"
+      baseurl:     "{{ deployer_cfg.repo.url }}/{{ p_mnt }}/{{ p_path }}"
+      enabled:     "yes"
+      gpgcheck:    "no"
+    with_items: "{{ ks_profile[hostvars[ansible_hostname]['h_ksPROF']].repos }}"
+

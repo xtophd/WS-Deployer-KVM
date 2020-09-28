@@ -1,0 +1,4 @@
+---
+rhvm_fqdn: rhvm.lab.linuxsoup.com
+engine_cafile: /etc/pki/ovirt-engine/ca.pem
+rhvm_user: admin@internal

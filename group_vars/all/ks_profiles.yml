@@ -7,8 +7,12 @@ ks_profile:
     ## ISO will be loopback mounted at kvm_cfg.ks_url/mnt
     ## repos will be configured on     kvm_cfg.ks_url/mnt/path
 
+    ## iso_label could be read by a task and set as a fact, but for now
+    ## we will just read it manually with blkid and configure it here
+
     template:   "ks-rhel8-lvm.j2"
     iso:        "rhel-8.2-x86_64-dvd.iso"
+    iso_label:  "RHEL-8-2-0-BaseOS-x86_64"
     mnt:        "rhel-8.2"
     repos:
       repo1 :
@@ -22,6 +26,7 @@ ks_profile:
 
     template:   "ks-rhel8-lvm.j2"
     iso:        "rhel-8.2-x86_64-dvd.iso"
+    iso_label:  "RHEL-8-2-0-BaseOS-x86_64"
     mnt:        "rhel-8.2"
     repos:
       repo1 :
@@ -29,11 +34,13 @@ ks_profile:
         path:   "BaseOS"
       repo2 :
         name:   "rhel-8-appstream-rpms"
+        path:   "AppStream"
  
   rhel81_lvm:
 
     template:   "ks-rhel8-lvm.j2"
     iso:        "rhel-8.1-x86_64-dvd.iso"
+    iso_label:  "RHEL-8-1-0-BaseOS-x86_64"
     mnt:        "rhel-8.1"
     repos:
       repo1 :

@@ -1,0 +1,103 @@
+## Authors: 
+##   Christoph Doerbeck
+##
+## Summary:
+##
+##   These tasks are separate from tasks-deploy-install-01.yml to
+##   allow parallel deployments even when wait_for_shutdown is enabled.
+##
+    - set_fact:
+        scripts_dir:   "/var/tmp/{{ g_clusterName }}"
+        fragment_dir:  "/var/tmp/{{ g_clusterName }}/{{ tdp_node_name }}-fragments"
+
+        tdp_ks_dir:    "/var/www/html/ks"
+        tdp_ks_url:    "{{ deployer_cfg.kickstart.url }}"
+        tdp_ks_cfg:    "{{ g_clusterName }}-{{ tdp_node_name }}.cfg"
+
+        tdp_iso_path:  "{{ deployer_cfg.iso.dir }}"
+        tdp_iso_name:  "{{ ks_profile[hostvars[tdp_node_name]['h_ksPROF']].iso | default ('') }}"
+
+    - block:
+
+        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART2: ({{ tdp_node_name }}) vm wait for state DOWN (INSTALL COMPLETE)"
+          ovirt_vm:
+            auth: "{{ ovirt_auth }}"
+            name: "{{ b_ovirt_vmname }}"
+            cluster: "{{ b_ovirt_cluster }}"
+          register: vm_result
+          until:  vm_result.vm.status == 'down'
+          retries: 600
+          delay: 5
+          when: tdp_wait_for_shutdown == True
+
+        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART2: ({{ tdp_node_name }}) eject iso"
+          ovirt_vm:
+            auth: "{{ ovirt_auth }}"
+            name: "{{ b_ovirt_vmname }}"
+            cluster: "{{ b_ovirt_cluster }}"
+            cd_iso: ""
+
+        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART2: ({{ tdp_node_name }}) vm change boot device to hd"
+          ovirt_vm:
+            auth: "{{ ovirt_auth }}"
+            name: "{{ b_ovirt_vmname }}"
+            cluster: "{{ b_ovirt_cluster }}"
+            boot_menu: "no"
+            boot_devices:
+              - hd
+
+        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART2: ({{ tdp_node_name }}) vm change state to RUNNING (BOOT)"
+          ovirt_vm:
+            auth: "{{ ovirt_auth }}"
+            name: "{{ b_ovirt_vmname }}"
+            cluster: "{{ b_ovirt_cluster }}"
+            state: "running"
+            wait: yes
+
+#        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART2: ({{ tdp_node_name }}): customize image with injected ssh key"
+#          vars:
+#            p_vmname:   "{{ g_clusterName }}-{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
+#          shell:
+#            cmd: |
+#              virt-customize -d "{{ p_vmname }}" \
+#                             --ssh-inject root:file:/root/.ssh/id_rsa.pub \
+#                             --selinux-relabel
+#          when: 
+#            - tdp_wait_for_shutdown == True
+#            - tdp_inject_sshkey == True
+    
+        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART2: ({{ tdp_node_name }}): wait for boot (check port 22)"
+          wait_for:
+            host: "{{ hostvars[tdp_node_name]['h_pubIP'] }}"
+            connect_timeout: 5
+            delay: 15
+            port: 22
+            sleep: 1
+            state: started
+            timeout: 300
+          when: tdp_wait_for_shutdown == True
+    
+        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART2: ({{ tdp_node_name }}): clean up old ssh keys for node"
+          shell:
+            cmd: |
+              ssh-keygen -R "{{ hostvars[tdp_node_name]['inventory_hostname'] }}"
+              ssh-keygen -R "{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
+              ssh-keygen -R "{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}.{{ g_clusterName }}.{{ g_publicDomain }}"
+              ssh-keygen -R "{{ hostvars[tdp_node_name]['h_pubIP'] }}"
+          ignore_errors: yes
+    
+        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART2: ({{ tdp_node_name }}): add new ssh keys for node"
+          vars:
+            p_fqdn:   "{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}.{{ g_pubFQDN }}"
+          shell:
+            cmd: |
+              ssh-keyscan "{{ p_fqdn }}" >> /root/.ssh/known_hosts
+          when: tdp_wait_for_shutdown == True
+          ignore_errors: yes
+
+      vars:
+        b_ovirt_cluster: "{{ ovirt_cfg.cluster_name | default ('') }}"
+        b_ovirt_storage: "{{ ovirt_cfg.storage_domain | default ('') }}"
+        b_ovirt_vmname:  "{{ g_clusterName }}-{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
+        b_iso_name:      "{{ b_ovirt_vmname }}.iso"
+

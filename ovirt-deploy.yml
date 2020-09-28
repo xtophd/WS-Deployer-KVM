@@ -1,0 +1,75 @@
+## Authors: 
+##   Christoph Doerbeck
+##
+## Summary:
+##
+##   This loop iterates over the (sorted) deployer_plan.passes
+##   and then includes the task-deploy-plan.yml to run deployment
+##   plays on the defined hostgroup
+##
+##   A deploy_plan pass is aligned 1-to-1 with a ansible hostgroup
+##   All hosts in deploy_plan pass use an identical deployment strategy
+##
+
+---
+- hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars_files:
+#    - ovirt_vars.yml
+    - ../config/credentials.yml
+    - ../config/ovirt-config.yml
+
+  pre_tasks:
+    - name: Login to oVirt
+      ovirt_auth:
+        hostname: "{{ ovirt_cfg.api.fqdn }}"
+        ca_file:  "{{ ovirt_cfg.cafile | default(omit) }}"
+        insecure: "{{ rhvm_insecure | default(true) }}"
+
+        ## ** NOTE ** following variables should be encrypted in vaulted credentials.yml file
+        username: "{{ ovirt_username }}"
+        password: "{{ ovirt_password }}"
+      tags:
+        - always
+
+  tasks:
+
+  ##
+  ## Combine DEFAULT with LOCAL profile configs into single dictionaries
+  ## 
+
+  - set_fact: rs_profile="{{ rs_profile | combine(local_rs_profile) }}"
+    when: local_rs_profile is defined
+
+  - set_fact: ks_profile="{{ ks_profile | combine(local_ks_profile) }}"
+    when: local_ks_profile is defined
+
+  - set_fact: hw_profile="{{ hw_profile | combine(local_hw_profile) }}"
+    when: local_hw_profile is defined
+
+  ##
+  ## Pre-Deploy / Deploy / Post-Deploy
+  ##
+
+  - name: "OVIRT-DEPLOY: Deployer-plan pre-install ({{ deployer_plan.pre_install }})"
+    shell: "cd .. ; {{ deployer_plan.pre_install }}"
+    when: deployer_plan.pre_install != ""
+
+  - name: "OVIRT-DEPLOY: Deployer-plan pass iteration (invoke taskblock-hostgroup)"
+    include_tasks: ovirt-deploy-taskblock-hostgroup.yml
+    loop: "{{ deployer_plan['passes'] | flatten(1) | sort }}"
+    when: deployer_plan.passes[item]['hostgroup'] != ""
+
+  - name: "OVIRT-DEPLOY: Deployer-plan post-install ({{ deployer_plan.post_install }})"
+    shell: "cd .. ; {{ deployer_plan.post_install }}"
+    when: deployer_plan.post_install != ""
+
+  post_tasks:
+    - name: Logout from oVirt
+      ovirt_auth:
+        state: absent
+        ovirt_auth: "{{ ovirt_auth }}"
+      tags:
+        - always

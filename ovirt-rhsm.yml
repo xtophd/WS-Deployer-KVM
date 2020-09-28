@@ -1,0 +1,32 @@
+## Authors: 
+##   Christoph Doerbeck
+##
+## Summary:
+##
+
+---
+- hosts: localhost
+
+  tasks:
+
+  - debug:
+      msg: "Ansible Facts: {{ ansible_distribution }} {{ ansible_distribution_major_version  }}"
+
+  - name: "OVIRT-BASICS: Subscription Manager enable RHEL 7 required repos"
+    rhsm_repository: 
+      name: "rhel-7-server-rhv-4.3-manager-rpms,rhel-7-server-extras-rpms,rhel-7-server-rpms"
+      purge: True
+      state: enabled
+    when:
+      - ansible_distribution == "RedHat"
+      - ansible_distribution_major_version == "7"
+
+  - name: "OVIRT-BASICS: Subscription Manager enable RHEL 8 required repos"
+    rhsm_repository: 
+      name: "rhel-8-server-rhv-4.4-manager-rpms"
+      purge: True
+      state: enabled
+    when:
+      - ansible_distribution == "RedHat"
+      - ansible_distribution_major_version == "8"
+

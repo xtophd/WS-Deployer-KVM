@@ -1,0 +1,43 @@
+##   Christoph Doerbeck
+##
+## Summary:
+##
+## I am using blocks to:
+##
+##   localize variables to related tasks
+##   define variables in one place
+##
+
+    - block:
+
+        - name: "OVIRT-UNDEPLOY-TASKBLOCK-NODE: ({{ tdp_node_name }}) stop vm '{{ b_ovirt_vmname }}'" 
+          ovirt_vm:
+            auth:      "{{ ovirt_auth }}"
+            name:      "{{ b_ovirt_vmname }}"
+            cluster:   "{{ b_ovirt_cluster }}"
+            state:     stopped
+            wait:      yes
+
+        - name: "OVIRT-UNDEPLOY-TASKBLOCK-NODE: ({{ tdp_node_name }}) undeploy vm '{{ b_ovirt_vmname }}'" 
+          ovirt_vm:
+            auth:      "{{ ovirt_auth }}"
+            name:      "{{ b_ovirt_vmname }}"
+            cluster:   "{{ b_ovirt_cluster }}"
+            state:     absent
+            wait:      yes
+
+        - name: "OVIRT-UNDEPLOY-TASKBLOCK-NODE: ({{ tdp_node_name }}) undeploy iso '{{ b_iso_name }}' in oVIRT storage domain '{{ b_ovirt_storage }}'"
+          ovirt_disk:
+            auth: '{{ ovirt_auth }}'
+            name: '{{ g_clusterName }}-{{ tdp_node_name }}.iso'
+            description: '{{ b_iso_name }}'
+            storage_domain: '{{ b_ovirt_storage }}'
+            state: absent
+            wait: yes
+
+      vars:
+        b_ovirt_cluster: "{{ ovirt_cfg.cluster_name | default ('') }}"
+        b_ovirt_storage: "{{ ovirt_cfg.storage_domain | default ('') }}"
+        b_ovirt_vmname:  "{{ g_clusterName }}-{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
+        b_iso_name:      "{{ b_ovirt_vmname }}.iso"
+
