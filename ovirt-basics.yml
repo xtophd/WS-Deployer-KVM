@@ -12,6 +12,9 @@
   - debug:
       msg: "Ansible Facts: {{ ansible_distribution }} {{ ansible_distribution_major_version  }}"
 
+  - name: "OVIRT-BASICS: install ISO utilities"
+    yum: name=genisoimage state=installed
+
   - name: "OVIRT-BASICS: install oVirt API"
     yum: name=python-ovirt-engine-sdk4 state=installed
 
