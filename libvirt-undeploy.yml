@@ -20,10 +20,10 @@
 ## Delete VMs (domains)
 ##
 
-  - name: "LIBVIRT-UNDEPLOY: Iterating over passes"
-    include_tasks: tasks-undeploy.yml
-    loop: "{{ kvm_deploy_plan['passes'] | flatten(1) | sort }}"
-    when: kvm_deploy_plan.passes[item]['hostgroup'] != ""
+  - name: "LIBVIRT-UNDEPLOY: Iterate over deployer-plan passes and invoke undeploy taskblock"
+    include_tasks: libvirt-undeploy-taskblock-hostgroup.yml
+    loop: "{{ deployer_plan['passes'] | flatten(1) | sort }}"
+    when: deployer_plan.passes[item]['hostgroup'] != ""
 
 ##
 ## Delete Network
@@ -37,8 +37,6 @@
     register: test_libvirt_network
 
   - debug: msg="Libvirt Network Test Result Code = {{ test_libvirt_network.rc }}"
-
-
 
   - name: "LIBVIRT-UNDEPLOY: test existence of network bridge ({{ kvm_cfg.network.bridge }})"
     when: 
@@ -55,8 +53,6 @@
       - kvm_cfg.network.fwd_type == "bridge"
       - test_libvirt_network.rc == 0
 
-
-
   - name: "LIBVIRT-UNDEPLOY: undefine libvirt network ({{ kvm_cfg.network.name }})"
     when: test_libvirt_network.rc == 0
     shell:
@@ -68,7 +64,6 @@
     shell: 
       cmd: |
         virsh net-destroy {{ kvm_cfg.network.name }}
-
 
 ## Due to the complexities of bridging and "undoing" bridge without loosing network
 ## connectivity, I opt NOT to touch bridge and their interfaces

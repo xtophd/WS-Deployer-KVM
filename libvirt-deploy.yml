@@ -3,8 +3,8 @@
 ##
 ## Summary:
 ##
-##   This loop iterates over the (sorted) kvm_deploy_plan.passes
-##   and then includes the task-deploy-plan.yml to run deployment
+##   This loop iterates over the (sorted) deployer_plan.passes
+##   and then includes the libvirt-deploy-taskblocks to run deployment
 ##   plays on the defined hostgroup
 ##
 ##   A deploy_plan pass is aligned 1-to-1 with a ansible hostgroup
@@ -43,16 +43,16 @@
   ## Pre-Deploy / Deploy / Post-Deploy
   ##
 
-  - name: "LIBVIRT-DEPLOY: pre-install'"
-    shell: "cd .. ; {{ kvm_deploy_plan.pre_install }}"
-    when: kvm_deploy_plan.pre_install != ""
+  - name: "LIBVIRT-DEPLOY:  Deployer-plan pre-install ({{ deployer_plan.pre_install }})'"
+    shell: "cd .. ; {{ deployer_plan.pre_install }}"
+    when: deployer_plan.pre_install != ""
 
-  - name: "LIBVIRT-DEPLOY: Iterating over passes"
-    include_tasks: tasks-deploy.yml
-    loop: "{{ kvm_deploy_plan['passes'] | flatten(1) | sort }}"
-    when: kvm_deploy_plan.passes[item]['hostgroup'] != ""
+  - name: "LIBVIRT-DEPLOY: Deployer-plan pass iteration (invoke taskblock-hostgroup)"
+    include_tasks: libvirt-deploy-taskblock-hostgroup.yml
+    loop: "{{ deployer_plan['passes'] | flatten(1) | sort }}"
+    when: deployer_plan.passes[item]['hostgroup'] != ""
 
-  - name: "LIBVIRT-DEPLOY: post-install '{{ kvm_deploy_plan.post_install }}'"
-    shell: "cd .. ; {{ kvm_deploy_plan.post_install }}"
-    when: kvm_deploy_plan.post_install != ""
+  - name: "LIBVIRT-DEPLOY: Deployer-plan post-install ({{ deployer_plan.post_install }})'"
+    shell: "cd .. ; {{ deployer_plan.post_install }}"
+    when: deployer_plan.post_install != ""
 

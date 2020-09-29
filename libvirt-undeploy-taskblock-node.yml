@@ -1,0 +1,34 @@
+## Authors:
+##   Christoph Doerbeck
+##
+## Summary:
+##
+##
+##
+
+
+    - block:
+
+        - name: "LIBVIRT-UNDEPLOY-TASKBLOCK-NODE: ({{ tdp_node_name }}) stop vm '{{ tdp_vmname }}"
+          shell:
+            cmd: |
+              virsh destroy "{{ tdp_vmname }}"
+          loop: "{{ groups[tdp_hostgroup] }}"
+          loop_control:
+            loop_var: tdp_node_name
+          ignore_errors: yes
+  
+        - name: "LIBVIRT-UNDEPLOY-TASKBLOCK-NODE: ({{ tdp_node_name }}) undeploy vm '{{ tdp_vmname }}"
+          shell:
+            cmd: |
+              virsh undefine "{{ tdp_vmname }}" --remove-all-storage --nvram
+          loop: "{{ groups[tdp_hostgroup] }}"
+          loop_control:
+            loop_var: tdp_node_name
+          ignore_errors: yes
+
+      vars:
+        tdp_pass_name: "{{ item }}"
+        tdp_hostgroup: "{{ deployer_plan.passes[item]['hostgroup'] }}" 
+        tdp_vmname:    "{{ g_clusterName }}-{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
+
