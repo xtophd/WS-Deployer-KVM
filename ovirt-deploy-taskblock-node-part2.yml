@@ -53,6 +53,8 @@
             cluster: "{{ b_ovirt_cluster }}"
             state: "running"
             wait: yes
+          retries: 3
+
 
 #        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART2: ({{ tdp_node_name }}): customize image with injected ssh key"
 #          vars:
