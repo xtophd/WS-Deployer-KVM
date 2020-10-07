@@ -17,6 +17,7 @@
             cluster:   "{{ b_ovirt_cluster }}"
             state:     stopped
             wait:      yes
+          retries: 3
 
         - name: "OVIRT-UNDEPLOY-TASKBLOCK-NODE: ({{ tdp_node_name }}) undeploy vm '{{ b_ovirt_vmname }}'" 
           ovirt_vm:
