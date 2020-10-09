@@ -10,14 +10,28 @@
 
     - block:
 
-        - name: "OVIRT-UNDEPLOY-TASKBLOCK-NODE: ({{ tdp_node_name }}) stop vm '{{ b_ovirt_vmname }}'" 
+        - name: "OVIRT-UNDEPLOY-TASKBLOCK-NODE: ({{ tdp_node_name }}) stop vm '{{ b_ovirt_vmname }}'"
+          ignore_errors: true
           ovirt_vm:
             auth:      "{{ ovirt_auth }}"
             name:      "{{ b_ovirt_vmname }}"
             cluster:   "{{ b_ovirt_cluster }}"
-            state:     stopped
-            wait:      yes
-          retries: 3
+            state:     "stopped"
+            wait:      no
+          register: vmstop_result
+
+        ## - debug: var=vmstop_result
+
+        - name: "OVIRT-UNDEPLOY-TASKBLOCK-NODE: ({{ tdp_node_name }}) wait for vm '{{ b_ovirt_vmname }}' to be down"
+          ovirt_vm_info:
+            pattern: name="{{ b_ovirt_vmname }}" cluster="{{ b_ovirt_cluster }}"
+            auth: "{{ ovirt_auth }}"
+          register: vminfo_result
+          until: vminfo_result.ovirt_vms[0].status == "down" or vminfo_result.ovirt_vms[0].status == "absent"
+          retries: 24
+          delay: 5
+
+        ## - debug: var=vminfo_result
 
         - name: "OVIRT-UNDEPLOY-TASKBLOCK-NODE: ({{ tdp_node_name }}) undeploy vm '{{ b_ovirt_vmname }}'" 
           ovirt_vm:

@@ -9,10 +9,50 @@
 ##
 
     ##
-    ## When an kickstart profile is defined, deploy ks.cfg and mount iso for repo access
+    ####################################
+    ##
+
+    ## Determine state of the vm
+
+    - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART1: ({{ tdp_node_name }}) determine state of vm '{{ b_ovirt_vmname }}'"
+      vars:
+        b_name:          "{{ hostvars[tdp_node_name]['inventory_hostname_short'] }}"
+        b_ovirt_cluster: "{{ ovirt_cfg.cluster_name }}"
+        b_ovirt_vmname:  "{{ g_clusterName }}-{{ b_name }}"
+      ovirt_vm_info:
+        pattern: name="{{ b_ovirt_vmname }}" cluster="{{ b_ovirt_cluster }}"
+        auth: "{{ ovirt_auth }}"
+      register: vminfo_result
+      ignore_errors: true
+
+    - debug: var=vminfo_result
+
+    ## If the node is absent OR node NOT up, then set_fact to deploy the node
+
+    - set_fact:
+        tdp_deploy_node: false
+    
+    - set_fact:
+        tdp_deploy_node: true
+      when: vminfo_result.ovirt_vms|length == 0
+
+    - set_fact:
+        tdp_deploy_node: true
+      when: 
+        - vminfo_result.ovirt_vms[0].status is defined
+        - vminfo_result.ovirt_vms[0].status != "up" 
+    
+    - debug: var=tdp_deploy_node
+
+    ##
+    ####################################
     ##
 
     - block:
+
+        ##
+        ## This BLOCK configures the kickstart profile, deploys the ks.cfg and mount iso for repo access
+        ##
 
         - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART1: ({{ tdp_node_name }}) create kickstart dir '{{ b_ks_dir }}'"
           file: path="{{ b_ks_dir }}" mode="0755" state=directory
@@ -165,6 +205,7 @@
         b_iso_label:     "{{ ks_profile[b_ks_profile].iso_label | default ('') }}"
 
       when: 
+        - tdp_deploy_node == true
         - hostvars[tdp_node_name]['h_ksPROF'] != ""
 
 
@@ -291,3 +332,5 @@
         b_kernelargs:    "ks={{ b_ksurl }} ip={{ b_ip }} netmask={{ b_nm }} dns={{ b_dns }} gateway={{ b_gw }}"
 
 
+      when: 
+        - tdp_deploy_node == true
