@@ -33,6 +33,12 @@
   tags:
   - basics
 
+- import_playbook: ovirt-prep.yml
+  tags:
+  - prep
+  - deploy
+  - redeploy
+
 - import_playbook: ovirt-undeploy.yml
   tags:
   - never

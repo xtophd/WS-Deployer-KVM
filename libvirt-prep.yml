@@ -1,0 +1,62 @@
+## Authors: 
+##   Christoph Doerbeck
+##   Will Tome
+##
+## Summary:
+##
+##   For all hosts, we need to do a bit of preparation.  At the
+##   moment we only ensure a MAC (h_pubMAC) is configured.  But 
+##   in the future we this may expenad.
+##
+
+---
+- hosts: all
+  connection: local
+  gather_facts: false
+
+  tasks:
+
+  ##
+  ## Combine DEFAULT with LOCAL profile configs into single dictionaries
+  ## 
+
+  - set_fact: rs_profile="{{ rs_profile | combine(local_rs_profile) }}"
+    when: local_rs_profile is defined
+
+  - set_fact: ks_profile="{{ ks_profile | combine(local_ks_profile) }}"
+    when: local_ks_profile is defined
+
+  - set_fact: hw_profile="{{ hw_profile | combine(local_hw_profile) }}"
+    when: local_hw_profile is defined
+
+  ##
+  ## For hosts that do NOT have an assigned h_pubMAC, generate one
+  ## and store it in the {PWD}/config/host_vars directory
+  ##
+
+  - name: "OVIRT-PREP: create host_vars dir"
+    file: path="{{ lookup('env','PWD') }}/config/host_vars" state=directory
+
+  - name: "OVIRT-PREP: generate random MAC "
+    script: macgen.py
+    register: macgen_output
+    when: h_pubMAC is undefined
+
+  - name: "OVIRT-PREP: store random MAC in host_vars"
+    copy:
+      dest: "{{ lookup('env', 'PWD') }}/config/host_vars/{{ inventory_hostname }}"
+      content: "h_pubMAC: {{ macgen_output.stdout }}"
+    when: h_pubMAC is undefined
+    register: makeupmac
+
+  - name: "OVIRT-PREP: set fact to preserve MAC for this run"
+    set_fact:
+      h_pubMAC: '{{ macgen_output.stdout }}'
+    when: makeupmac.changed
+
+- hosts: all
+  gather_facts: no
+  tasks:
+
+  - debug: msg="{{ inventory_hostname }} == {{ h_pubMAC }}"
+
