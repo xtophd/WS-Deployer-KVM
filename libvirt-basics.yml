@@ -30,20 +30,38 @@
       mode: "0775"
       state: directory
 
-  - name: "LIBVIRT-SETUP: Subscription Manager enable RHEL 7 required repos only"
-    rhsm_repository: 
-      name: "rhel-7-server-rpms,rhel-7-server-optional-rpms,rhel-7-server-extras-rpms"
-      purge: True
-      state: enabled
+  - blick:
+
+      - name: "LIBVIRT-SETUP: Subscription Manager enable RHEL 7 required repos only"
+        rhsm_repository: 
+          name: "rhel-7-server-rpms,rhel-7-server-optional-rpms,rhel-7-server-extras-rpms"
+          purge: True
+          state: enabled
+
+      - name: "LIBVIRT-SETUP: Install python
+        yum: name=python state=installed
+
     when:
       - ansible_distribution == "RedHat"
       - ansible_distribution_major_version == "7"
 
-  - name: "LIBVIRT-SETUP: Subscription Manager enable RHEL 8 required repos only"
-    rhsm_repository: 
-      name: "rhel-8-for-x86_64-baseos-rpms,rhel-8-for-x86_64-appstream-rpms"
-      purge: True
-      state: enabled
+  - block:
+
+      - name: "LIBVIRT-SETUP: Subscription Manager enable RHEL 8 required repos only"
+        rhsm_repository: 
+          name: "rhel-8-for-x86_64-baseos-rpms,rhel-8-for-x86_64-appstream-rpms"
+          purge: True
+          state: enabled
+
+      - name: "LIBVIRT-SETUP: Install python
+        yum: name=python3 state=installed
+
+      - name: "LIBVIRT-SETUP: Configure python3 alternatives
+        alternatives:
+           name='python'
+           link='/bin/python3'
+           path='/bin/python'
+
     when:
       - ansible_distribution == "RedHat"
       - ansible_distribution_major_version == "8"
