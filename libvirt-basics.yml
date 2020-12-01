@@ -30,7 +30,7 @@
       mode: "0775"
       state: directory
 
-  - blick:
+  - block:
 
       - name: "LIBVIRT-SETUP: Subscription Manager enable RHEL 7 required repos only"
         rhsm_repository: 
@@ -38,7 +38,7 @@
           purge: True
           state: enabled
 
-      - name: "LIBVIRT-SETUP: Install python
+      - name: "LIBVIRT-SETUP: Install python"
         yum: name=python state=installed
 
     when:
@@ -53,10 +53,10 @@
           purge: True
           state: enabled
 
-      - name: "LIBVIRT-SETUP: Install python
+      - name: "LIBVIRT-SETUP: Install python"
         yum: name=python3 state=installed
 
-      - name: "LIBVIRT-SETUP: Configure python3 alternatives
+      - name: "LIBVIRT-SETUP: Configure python3 alternatives"
         alternatives:
            name='python'
            link='/bin/python3'
