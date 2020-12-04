@@ -4,16 +4,16 @@
 
 rs_profile:
 
-  rhel8:
-    description: "RHEL 8 Workshop Node"
+  tiny:
+    description: "Tiny Resource Node"
     vcpus: 2
     memsize: 4000
     storage:
       root:
         size: 30
 
-  rhel8-xtra:
-    description: "RHEL 8 Workshop Node Extra Disks"
+  tiny-xtra:
+    description: "Tiny with Extra Disks"
     vcpus: 2
     memsize: 4000
     storage:
@@ -29,16 +29,8 @@ rs_profile:
         disk4: 
           size: 5 
 
-  bastion:
-    description: "Resources for the bastion utility host"
-    vcpus:    4
-    memsize:  8000
-    storage:
-      root:
-        size: 30 
-
   sml:
-    description: "Sufficient for minimal sized workers"
+    description: "Small Node [ex: OCP Worker]"
     vcpus: 2
     memsize: 8000
     storage:
@@ -46,7 +38,7 @@ rs_profile:
         size: 120 
 
   med:
-    description: "Sufficient for minimal sized bootstrap and masters"
+    description: "Medium Node [ex: OCP Master/Bootstrap]"
     vcpus:    4
     memsize:  16000
     storage:
@@ -54,10 +46,29 @@ rs_profile:
         size: 120 
 
   lrg:
-    description: "Beefy worker"
+    description: "Large Node"
     vcpus:    8
-    memsize:  24000
+    memsize:  32000
     storage:
       root:
         size: 200 
+
+  bastion:
+    description: "Bastion Utility Server"
+    vcpus:    4
+    memsize:  8000
+    storage:
+      root:
+        size: 30 
+
+  sat6:
+    description: "Satellite 6 with Extra Disk"
+    vcpus: 4
+    memsize: 24000
+    storage:
+      root:
+        size: 30
+      extra:
+        disk1:
+          size: 200
 
