@@ -57,6 +57,15 @@
             wait: yes
           retries: 3
 
+        - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART2: ({{ tdp_node_name }}) undeploy iso '{{ b_iso_name }}' in oVIRT storage domain '{{ b_ovirt_storage }}'"
+          ovirt_disk:
+            auth: '{{ ovirt_auth }}'
+            name: '{{ g_clusterName }}-{{ tdp_node_name }}.iso'
+            description: '{{ b_iso_name }}'
+            storage_domain: '{{ b_ovirt_storage }}'
+            state: absent
+            wait: yes
+
       vars:
         b_ovirt_cluster: "{{ ovirt_cfg.cluster_name | default ('') }}"
         b_ovirt_storage: "{{ ovirt_cfg.storage_domain | default ('') }}"
@@ -64,7 +73,6 @@
         b_iso_name:      "{{ b_ovirt_vmname }}.iso"
       when: 
         - tdp_deploy_node == True
-
 
     - name: "OVIRT-DEPLOY-TASKBLOCK-NODE-PART2: ({{ tdp_node_name }}): wait for boot (check port 22)"
       wait_for:
