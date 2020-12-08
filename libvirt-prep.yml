@@ -10,7 +10,7 @@
 ##
 
 ---
-- hosts: all
+- hosts: all,!myVirthost
   connection: local
   gather_facts: false
 
@@ -54,7 +54,7 @@
       h_pubMAC: '{{ macgen_output.stdout }}'
     when: makeupmac.changed
 
-- hosts: all
+- hosts: all,!myVirthost
   gather_facts: no
   tasks:
 
